@@ -55,7 +55,7 @@ class AjxpLuceneIndexer extends AJXP_Plugin{
             if($this->indexContent){
                 if($this->indexContent) $metaFields[] = "ajxp_document_content";
                 $data = array("indexed_meta_fields" => $metaFields,
-                              "additionnal_meta_columns" => array("ajxp_document_content" => "Content")
+                              "additional_meta_columns" => array("ajxp_document_content" => "Content")
                 );
                 $el->setAttribute("indexed_meta_fields", json_encode($data));
             }else{
@@ -65,7 +65,7 @@ class AjxpLuceneIndexer extends AJXP_Plugin{
         parent::init($this->options);
     }
 
-	
+
 	public function applyAction($actionName, $httpVars, $fileVars){
         $messages = ConfService::getMessages();
 		if($actionName == "search"){
@@ -305,12 +305,12 @@ class AjxpLuceneIndexer extends AJXP_Plugin{
     }
 
         /**
-	 * 
+	 *
 	 * Hooked to node.change, this will update the index
 	 * if $oldNode = null => create node $newNode
 	 * if $newNode = null => delete node $oldNode
 	 * Else copy or move oldNode to newNode.
-	 * 
+	 *
 	 * @param AJXP_Node $oldNode
 	 * @param AJXP_Node $newNode
 	 * @param Boolean $copy
@@ -369,7 +369,7 @@ class AjxpLuceneIndexer extends AJXP_Plugin{
                 $this->createIndexedDocument(new AJXP_Node($newChildURL), $index);
             }
         }
-        
+
         if(!isSet($this->currentIndex)){
 		    $index->commit();
         }
@@ -480,9 +480,9 @@ class AjxpLuceneIndexer extends AJXP_Plugin{
         	$out = implode("\n", $output);
         	$enc = 'UTF8';
         	$asciiString = iconv($enc, 'ASCII//TRANSLIT//IGNORE', $out);
-       		$doc->addField(Zend_Search_Lucene_Field::unStored("body", $asciiString));       		
+       		$doc->addField(Zend_Search_Lucene_Field::unStored("body", $asciiString));
         }
-        
+
         $index->addDocument($doc);
         return $doc;
     }
@@ -529,7 +529,7 @@ class AjxpLuceneIndexer extends AJXP_Plugin{
     }
 
 	/**
-	 * 
+	 *
 	 * Enter description here ...
 	 * @param Integer $repositoryId
      * @param bool $create
@@ -549,6 +549,6 @@ class AjxpLuceneIndexer extends AJXP_Plugin{
             }
 		    $index = Zend_Search_Lucene::create($iPath);
 		}
-		return $index;		
+		return $index;
 	}
 }

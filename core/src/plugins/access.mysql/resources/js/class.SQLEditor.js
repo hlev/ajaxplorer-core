@@ -24,8 +24,8 @@ Class.create("SQLEditor", {
 		this.oForm = $(oFormObject);
 		modal.setCloseAction(function(){this.close();}.bind(this));
 	},
-	
-	
+
+
 	createEditor : function(){
 		var userSelection = ajaxplorer.getUserSelection();
 		if(userSelection.hasFile()){
@@ -34,7 +34,7 @@ Class.create("SQLEditor", {
 			this.createTableEditor(userSelection);
 		}
 	},
-	
+
 	createRecordEditor: function(userSelection){
 		var tmpSelection = ajaxplorer.getUserSelection();
 		if(tmpSelection.getSelectionSource()){
@@ -49,8 +49,8 @@ Class.create("SQLEditor", {
 		var tBody = new Element('tbody');
 		table.insert(tBody);
 		this.fields = $A([]);
-		
-		$A(columns).each(function(col){			
+
+		$A(columns).each(function(col){
 			this.fields.push(col.attributeName);
 			var disable = false;
 			var auto_inc = false;
@@ -69,11 +69,11 @@ Class.create("SQLEditor", {
 			var inputTD = new Element('td', {className:'sqlInputTd'});
 			var input;
 			if(!col.field_type)return;
-			var type = col.field_type.toLowerCase();			
+			var type = col.field_type.toLowerCase();
 			switch(type){
 				case "enum":
 				case "set":
-					input = new Element('select', {name:col.attributeName});					
+					input = new Element('select', {name:col.attributeName});
 					var setString = col.field_size;
 					while(setString.search('\'')>-1) setString = setString.replace('\'', '');
 					var arr = $A(setString.split(','));
@@ -98,7 +98,7 @@ Class.create("SQLEditor", {
 						input = new Element('input', {name:col.attributeName});
 					}
 					break;
-				default : 
+				default :
 					input = new Element('input', {name:col.attributeName});
 					break;
 			}
@@ -109,9 +109,9 @@ Class.create("SQLEditor", {
 			tr.insert(typeTD);
 			tBody.insert(tr);
 		}.bind(this));
-		
+
 		var crtElement = this.oForm.select('div[id="mysql_edit_record"]')[0];
-		crtElement.insert({top:table});		
+		crtElement.insert({top:table});
 		var newRec = new Element('input', {type:'hidden',name:'record_is_new', value:'true'});
 		this.oForm.insert(newRec);
 		if(userSelection && !userSelection.isEmpty()){
@@ -131,7 +131,7 @@ Class.create("SQLEditor", {
 		}
 		modal.refreshDialogPosition(true, $('mysql_edit_record'));
 	},
-	
+
 	submitRecordForm : function(){
 		var oForm = modal.getForm();
 		oForm.getElements().each(function(el){
@@ -142,17 +142,17 @@ Class.create("SQLEditor", {
 		ajaxplorer.actionBar.submitForm(oForm, true);
 		hideLightBox();
 	},
-	
+
 	createTableEditor: function(tableName){
 		if(!tableName){
-			this.displayReplicationChooser();			
+			this.displayReplicationChooser();
 		}else{
 			var userSelection = ajaxplorer.getUserSelection();
 			if(userSelection.getSelectionSource()){
 				this.currentColumns = userSelection.getSelectionSource().getColumnsDef();
 			}else{
 				this.currentColumns = [];
-			}		
+			}
 			var columns = this.currentColumns;
 			var fields = $A(["field_name", "field_origname", "field_type", "field_size", "field_flags", "field_default", "field_pk", "field_null"]);
 			columns.each(function(col){
@@ -162,7 +162,7 @@ Class.create("SQLEditor", {
 			this.displayTableEditorForm(columns.length, fields, columns);
 		}
 	},
-	
+
 	displayReplicationChooser : function(){
 		var chooser = $('replication_chooser').cloneNode(true).setStyle({display:'block'});
 		this.oForm.insert(chooser);
@@ -184,7 +184,7 @@ Class.create("SQLEditor", {
 			modal.close();
 		}.bind(this) );
 	},
-	
+
 	displayTableEditorForm : function(numberReplicates, fields, values){
 		var templateTable = $('create_table_template').cloneNode(true).setStyle({display:'block'});
 		var templateRow = templateTable.select('tbody > tr')[0];
@@ -204,8 +204,8 @@ Class.create("SQLEditor", {
 			addButton.observe('click', function(e){
 				this.triggerAddColumn();
 			}.bind(this));
-			
-			
+
+
 			// MAKE ACTIONS
 			templateTable.select('td[edit="false"]').invoke('remove');
 			templateRow.select('input', 'textarea', 'select').invoke('disable');
@@ -219,7 +219,7 @@ Class.create("SQLEditor", {
 				style:'cursor:pointer;'
 			});
 			templateRow.select('td[new="false"]')[0].update(activator);
-			// Additionnal actions
+			// Additional actions
 			var deleteCol = new Element('img', {
 				src:ajxpResourcesFolder+'/images/actions/16/button_cancel.png',
 				height:'16',
@@ -285,11 +285,11 @@ Class.create("SQLEditor", {
 			});
 			ajaxplorer.actionBar.submitForm(this.oForm);
 			hideLightBox();
-			return false;			
+			return false;
 		}.bind(this);
 		modal.refreshDialogPosition(true, templateTable);
 	},
-	
+
 	triggerDeleteColumn : function(columnName){
 		var currentTable = this.oForm.select('input[name="current_table"]')[0].value;
 		var parameters = new Hash();
@@ -297,12 +297,12 @@ Class.create("SQLEditor", {
 		parameters.set('delete_column', columnName);
 		parameters.set('current_table', currentTable);
 		var connexion = new Connexion();
-		connexion.setParameters(parameters);		
+		connexion.setParameters(parameters);
 		connexion.onComplete = function(transport){ajaxplorer.actionBar.parseXmlMessage(transport.responseXML);};
 		connexion.sendAsync();
 		hideLightBox();
 	},
-	
+
 	triggerAddColumn : function(){
 		var params = new Hash();
 		var currentTable = this.oForm.select('input[name="current_table"]')[0].value;
@@ -313,28 +313,28 @@ Class.create("SQLEditor", {
 			if(elem.name.search("add_") == 0){
 				params.set(elem.name, elem.getValue());
 			}
-		});		
+		});
 		var connexion = new Connexion();
-		connexion.setParameters(params);		
+		connexion.setParameters(params);
 		connexion.onComplete = function(transport){ajaxplorer.actionBar.parseXmlMessage(transport.responseXML);};
 		connexion.sendAsync();
-		hideLightBox();		
+		hideLightBox();
 	},
-	
+
 	createFieldSet:function(legend, content){
 		var fSet = new Element('fieldset').insert(new Element('legend').update(legend)).insert(content);
-		return fSet;		
+		return fSet;
 	},
-	
+
 	parseXml : function(transport){
 		//alert(transport.responseText);
 		this.changeModifiedStatus(false);
 		this.removeOnLoad();
 	},
-	
-	parseTxt : function(transport){	
+
+	parseTxt : function(transport){
 	},
-	
+
 	changeModifiedStatus : function(bModified){
 		this.modified = bModified;
 		var crtTitle = modal.dialogTitle.select('span.titleString')[0];
@@ -347,31 +347,31 @@ Class.create("SQLEditor", {
 			this.saveButton.addClassName('disabled');
 			if(crtTitle.innerHTML.charAt(crtTitle.innerHTML.length - 1) == "*"){
 				crtTitle.innerHTML  = crtTitle.innerHTML.substring(0, crtTitle.innerHTML.length - 1);
-			}		
+			}
 		}
 		// ADD / REMOVE STAR AT THE END OF THE FILENAME
 	},
-	
-	setOnLoad : function(){	
+
+	setOnLoad : function(){
 		addLightboxMarkupToElement(this.textareaContainer);
 		var img = document.createElement("img");
 		img.src = ajxpResourcesFolder+"/images/loadingImage.gif";
 		$(this.textareaContainer).select("#element_overlay")[0].appendChild(img);
 		this.loading = true;
 	},
-	
+
 	removeOnLoad : function(){
 		removeLightboxFromElement(this.textareaContainer);
-		this.loading = false;	
+		this.loading = false;
 	},
-	
+
 	close : function(){
 		if(this.currentUseCp){
 			this.cpCodeObject.close();
-			modal.clearContent(modal.dialogContent);		
+			modal.clearContent(modal.dialogContent);
 		}
 	},
-	
+
 	setFullScreen: function(){
 		this.oForm.absolutize();
 		$(document.body).insert(this.oForm);
@@ -387,17 +387,17 @@ Class.create("SQLEditor", {
 			this.origContainerHeight = this.textarea.getHeight();
 			this.heightObserver = fitHeightToBottom(this.textarea, this.oForm);
 		}else{
-			
-		}		
+
+		}
 		var listener = this.fullScreenListener.bind(this);
 		Event.observe(window, "resize", listener);
 		this.oForm.observe("fullscreen:exit", function(e){
 			Event.stopObserving(window, "resize", listener);
 			//Event.stopObserving(window, "resize", this.heightObserver);
-		}.bind(this));		
+		}.bind(this));
 		this.fullscreenMode = true;
 	},
-	
+
 	exitFullScreen: function(){
 		this.oForm.relativize();
 		$$('.dialogContent')[0].insert(this.oForm);
@@ -407,16 +407,16 @@ Class.create("SQLEditor", {
 		if(!this.currentUseCp){
 			this.textarea.setStyle({height:this.origContainerHeight});
 		}else{
-			
-		}		
+
+		}
 		this.fullscreenMode = false;
 	},
-	
+
 	fullScreenListener : function(){
 		this.oForm.setStyle({
 			height:document.viewport.getHeight()
 		});
 		if(!this.currentUseCp) {fitHeightToBottom(this.textarea, this.oForm);}
 	}
-	
+
 });

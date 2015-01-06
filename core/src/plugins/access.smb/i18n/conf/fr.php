@@ -26,6 +26,6 @@ $mess=array(
 "Uri" => "Uri",
 "Path to the root folder on the server" => "Chemin du répertoire de base sur le serveur Samba",
 "File Creation Mask" => "File Creation Mask",
-"Optionnaly apply a chmod operation. Value must be numeric, like 0777, 0644, etc." => "Optionnaly apply a chmod operation. Value must be numeric, like 0777, 0644, etc.",
+"Optionally apply a chmod operation. Value must be numeric, like 0777, 0644, etc." => "Optionally apply a chmod operation. Value must be numeric, like 0777, 0644, etc.",
 );
 ?>

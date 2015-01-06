@@ -44,7 +44,7 @@
 
 
 /*
- * Additionnal php.ini settings
+ * Additional php.ini settings
  * > Problems with tmp dir : set your own session tmp dir (create it and make it writeable!)
  * > Concurrent versions of AjaXplorer : use session.cookie_path to differentiate them.
  */

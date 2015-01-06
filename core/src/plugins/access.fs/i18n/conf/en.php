@@ -26,7 +26,7 @@ $mess=array(
 "Create" => "Create",
 "Create folder if it does not exists" => "Create folder if it does not exists",
 "File Creation Mask" => "File Creation Mask",
-"Optionnaly apply a chmod operation. Value must be numeric, like 0777, 0644, etc." => "Optionnaly apply a chmod operation. Value must be numeric, like 0777, 0644, etc.",
+"Optionally apply a chmod operation. Value must be numeric, like 0777, 0644, etc." => "Optionally apply a chmod operation. Value must be numeric, like 0777, 0644, etc.",
 "Purge Days" => "Purge Days",
 "Option to purge documents after a given number of days. This require a manual set up of a CRON task. Leave to 0 if you don't wan't to use this feature." => "Option to purge documents after a given number of days. This require a manual set up of a CRON task. Leave to 0 if you don't wan't to use this feature.",
 "Real Size Probing" => "Real Size Probing",
@@ -36,3 +36,4 @@ $mess=array(
 "Data template" => "Data template",
 "Path to a directory on the filesystem whose content will be copied to the repository the first time it is loaded." => "Path to a directory on the filesystem whose content will be copied to the workspace the first time it is loaded."
 );
+?>

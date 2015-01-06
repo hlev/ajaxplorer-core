@@ -26,6 +26,6 @@ $mess=array(
 "Uri" => "Uri",
 "Path to the root folder on the server" => "Path to the root folder on the server",
 "File Creation Mask" => "File Creation Mask",
-"Optionnaly apply a chmod operation. Value must be numeric, like 0777, 0644, etc." => "Optionnaly apply a chmod operation. Value must be numeric, like 0777, 0644, etc.",
+"Optionally apply a chmod operation. Value must be numeric, like 0777, 0644, etc." => "Optionally apply a chmod operation. Value must be numeric, like 0777, 0644, etc.",
 );
 ?>

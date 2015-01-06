@@ -19,11 +19,11 @@
  */
 
 /**
- * The godzilla of AjaXplorer, should be split in smaller pieces.. 
+ * The godzilla of AjaXplorer, should be split in smaller pieces..
  * This grid displays either a table of rows or a grid of thumbnail.
  */
 Class.create("FilesList", SelectableElements, {
-	
+
 	__implements : ["IAjxpWidget", "IFocusable", "IContextMenuable", "IActionProvider"],
 
     __allObservers : null,
@@ -94,8 +94,8 @@ Class.create("FilesList", SelectableElements, {
 			}
 		}.bind(this);
         this._registerObserver(document, "ajaxplorer:user_logged", userLoggedObserver);
-		
-		
+
+
 		var loadObserver = this.contextObserver.bind(this);
 		var childAddedObserver = this.childAddedToContext.bind(this);
 		var loadingObs = this.setOnLoad.bind(this);
@@ -154,16 +154,16 @@ Class.create("FilesList", SelectableElements, {
 
 		this._thumbSize = 64;
 		this._crtImageIndex = 0;
-	
+
 		this._pendingFile = null;
 		this.allDraggables = new Array();
-		this.allDroppables = new Array();		
-		
+		this.allDroppables = new Array();
+
 		// List mode style : file list or tableur mode ?
 		this.gridStyle = "file";
 		this.paginationData = null;
 		this.even = true;
-		
+
 		// Default headersDef
 		this.hiddenColumns = $A([]);
         if(this.options.columnsDef){
@@ -228,7 +228,7 @@ Class.create("FilesList", SelectableElements, {
 	getDomNode : function(){
 		return this.htmlElement;
 	},
-	
+
 	/**
 	 * Implementation of the IAjxpWidget methods
 	 */
@@ -239,8 +239,8 @@ Class.create("FilesList", SelectableElements, {
         }
 		this.htmlElement = null;
 	},
-	
-	
+
+
 	/**
 	 * Gets the currently defined columns that are visible
 	 * @returns $A()
@@ -249,10 +249,10 @@ Class.create("FilesList", SelectableElements, {
 		var visible = $A([]);
 		this.columnsDef.each(function(el){
 			if(!this.hiddenColumns.include(el.attributeName)) visible.push(el);
-		}.bind(this) );		
+		}.bind(this) );
 		return visible;
 	},
-	
+
 	/**
 	 * Gets the current sort types associated to the currently visible columns
 	 * @returns $A()
@@ -260,12 +260,12 @@ Class.create("FilesList", SelectableElements, {
 	getVisibleSortTypes : function(){
 		var visible = $A([]);
 		var index = 0;
-		for(var i=0;i<this.columnsDef.length;i++){			
+		for(var i=0;i<this.columnsDef.length;i++){
 			if(!this.hiddenColumns.include(this.columnsDef[i].attributeName)) visible.push(this.columnsDef[i].sortType);
 		}
-		return visible;		
+		return visible;
 	},
-	
+
 	/**
 	 * Sets a column visible/invisible by its name
 	 * @param attName String Column name
@@ -273,7 +273,7 @@ Class.create("FilesList", SelectableElements, {
 	 */
 	setColumnVisible : function (attName, visible){
 		var change = false;
-		if(visible && this.hiddenColumns.include(attName)){			
+		if(visible && this.hiddenColumns.include(attName)){
 			this.hiddenColumns = this.hiddenColumns.without(attName);
 			change = true;
 		}
@@ -286,8 +286,8 @@ Class.create("FilesList", SelectableElements, {
 				var data = ajaxplorer.user.getPreference("columns_visibility", true) || {};
 				data = new Hash(data);
 				data.set(ajaxplorer.user.getActiveRepository(), this.hiddenColumns);
-				ajaxplorer.user.setPreference("columns_visibility", data, true);				
-			}			
+				ajaxplorer.user.setPreference("columns_visibility", data, true);
+			}
 			this.initGUI();
             this.empty(true);
 			this.fill(this.crtContext);
@@ -295,11 +295,11 @@ Class.create("FilesList", SelectableElements, {
 				ajaxplorer.user.savePreference("columns_visibility");
 			}
 		}
-		
+
 	},
-	
+
 	/**
-	 * Handler for contextChange event 
+	 * Handler for contextChange event
 	 */
 	contextObserver : function(e){
 		if(!this.crtContext) return;
@@ -308,7 +308,7 @@ Class.create("FilesList", SelectableElements, {
 		this.fill(this.crtContext);
 		this.removeOnLoad();
 	},
-	
+
 	extractComponentConfig : function(){
 		return {
 			gridStyle : {value:this.gridStyle},
@@ -320,13 +320,13 @@ Class.create("FilesList", SelectableElements, {
 			_fixedThumbSize : {value : this._fixedThumbSize}
 		};
 	},
-	
+
 	applyComponentConfig : function(config){
 		for(var key in config){
 			this[key] = config[key].value;
 		}
 	},
-	
+
 	/**
 	 * Apply the config of a component_config node
 	 * Returns true if the GUI needs refreshing
@@ -334,7 +334,7 @@ Class.create("FilesList", SelectableElements, {
 	 * @returns Boolean
 	 */
 	parseComponentConfig : function(domNode){
-		if(domNode.getAttribute("local") && !this.restoreConfig){			
+		if(domNode.getAttribute("local") && !this.restoreConfig){
 			this.restoreConfig = this.extractComponentConfig();
 		}
 		var refreshGUI = false;
@@ -357,7 +357,7 @@ Class.create("FilesList", SelectableElements, {
 				if(dispMode != this._displayMode){
 					this.switchDisplayMode(dispMode);
                     refreshGUI = true;
-				}				
+				}
 			}
 			if(columnsNode.getAttribute('template_name')){
 				this.columnsTemplate = columnsNode.getAttribute('template_name');
@@ -384,14 +384,14 @@ Class.create("FilesList", SelectableElements, {
                         this.hiddenColumns.push(col.getAttribute("attributeName"));
                     }
 				}.bind(this));
-				newCols.push(obj);					
+				newCols.push(obj);
 			}.bind(this));
 			if(newCols.size()){
 				this.columnsDef=newCols;
 				this._oSortTypes=sortTypes;
 				if(this._displayMode == "list"){
 					refreshGUI = true;
-				}			
+				}
 			}
 		}
 		var properties = XPathSelectNodes(domNode, "property");
@@ -453,11 +453,11 @@ Class.create("FilesList", SelectableElements, {
 			},
 			listeners : {
 				init:function(){
-					window.setTimeout(function(){					
+					window.setTimeout(function(){
 						var displayMode = oThis.getDisplayMode();
 						var item = this.subMenuItems.staticItems.detect(function(item){return item.command == displayMode;});
 						this.notify("submenu_active", item);
-					}.bind(window.listenerContext), 500);								
+					}.bind(window.listenerContext), 500);
 				}
 			}
 	    };
@@ -467,7 +467,7 @@ Class.create("FilesList", SelectableElements, {
 			actionBar:true,
 			actionBarGroup:'default',
 			contextMenu:false,
-			infoPanel:false			
+			infoPanel:false
 			};
 		var subMenuItems1 = {
 			staticItems:[
@@ -585,7 +585,7 @@ Class.create("FilesList", SelectableElements, {
 
 		return $H({thumb_size:thumbsizeAction, thumb_sort:thumbSortAction, multi_display:multiAction});
 	},
-	
+
 	/**
 	 * Creates the base GUI, depending on the displayMode
 	 */
@@ -611,7 +611,7 @@ Class.create("FilesList", SelectableElements, {
 					this.hiddenColumns = $A();
 				}
 			}
-			var visibleColumns = this.getVisibleColumns();			
+			var visibleColumns = this.getVisibleColumns();
 			var userPref;
 			if(ajaxplorer && ajaxplorer.user && ajaxplorer.user.getPreference("columns_size", true)){
 				var data = new Hash(ajaxplorer.user.getPreference("columns_size", true));
@@ -639,7 +639,7 @@ Class.create("FilesList", SelectableElements, {
 				if(column.attributeName == "ajxp_label"){// Will contain an icon
 					leftPadding = 24;
 				}
-				headerData.push({label:label, size:userWidth, leftPadding:leftPadding});				
+				headerData.push({label:label, size:userWidth, leftPadding:leftPadding});
 			}
 			buffer = '<div id="selectable_div_header-'+this.__currentInstanceIndex+'" class="sort-table"></div>';
 			buffer = buffer + '<div id="table_rows_container-'+this.__currentInstanceIndex+'" class="table_rows_container"><table id="selectable_div-'+this.__currentInstanceIndex+'" class="selectable_div sort-table" width="100%" cellspacing="0"><tbody></tbody></table></div>';
@@ -649,8 +649,8 @@ Class.create("FilesList", SelectableElements, {
 			attachMobileScroll(contentContainer, "vertical");
             var scrollElement = contentContainer;
 			var oElement = this.htmlElement.down(".selectable_div");
-			
-			if(this.paginationData && parseInt(this.paginationData.get('total')) > 1 ){				
+
+			if(this.paginationData && parseInt(this.paginationData.get('total')) > 1 ){
 				contentContainer.insert({before:this.createPaginator()});
 			}
 
@@ -679,7 +679,7 @@ Class.create("FilesList", SelectableElements, {
 					data.set(id, sizes);
 					ajaxplorer.user.setPreference("columns_size", data, true);
 					ajaxplorer.user.savePreference("columns_size");
-				}.bind(this), 2000);				
+				}.bind(this), 2000);
 			}.bind(this) );
 			this._sortableTable = new AjxpSortable(oElement, this.getVisibleSortTypes(), this.htmlElement.down('div.sort-table'));
 			this._sortableTable.onsort = function(){
@@ -706,7 +706,7 @@ Class.create("FilesList", SelectableElements, {
 				}
 			}.bind(this);
 			this.observe("resize", this.observer);
-		
+
 			if(this.headerMenu){
 				this.headerMenu.destroy();
 				delete this.headerMenu;
@@ -728,7 +728,7 @@ Class.create("FilesList", SelectableElements, {
 						isDefault:false,
 						callback:function(e){this.setColumnVisible(column.attributeName, !isVisible);}.bind(this)
 					});
-				}.bind(this) );		
+				}.bind(this) );
 				this.headerMenu.options.menuItems = items;
 				this.headerMenu.refreshList();
 			  }.bind(this)
@@ -744,7 +744,7 @@ Class.create("FilesList", SelectableElements, {
 			buffer += '<div id="selectable_div-'+this.__currentInstanceIndex+'" class="selectable_div'+(this._displayMode == "detail" ? ' detailed':'')+'" style="overflow:auto;">';
 			this.htmlElement.update(buffer);
 			attachMobileScroll(this.htmlElement.down(".selectable_div"), "vertical");
-			if(this.paginationData && parseInt(this.paginationData.get('total')) > 1 ){				
+			if(this.paginationData && parseInt(this.paginationData.get('total')) > 1 ){
                 this.htmlElement.down(".selectable_div").insert({before:this.createPaginator()});
 			}
             var scrollElement = this.htmlElement.down(".selectable_div");
@@ -752,7 +752,7 @@ Class.create("FilesList", SelectableElements, {
 				fitHeightToBottom(scrollElement, this.htmlElement);
 			}.bind(this);
 			this.observe("resize", this.observer);
-			
+
 			if(ajaxplorer && ajaxplorer.user && ajaxplorer.user.getPreference("thumb_size")){
 				this._thumbSize = parseInt(ajaxplorer.user.getPreference("thumb_size"));
 			}
@@ -816,7 +816,7 @@ Class.create("FilesList", SelectableElements, {
                     }
 					if(!ajaxplorer || !ajaxplorer.user) return;
 					ajaxplorer.user.setPreference("thumb_size", this._thumbSize);
-					ajaxplorer.user.savePreference("thumb_size");								
+					ajaxplorer.user.savePreference("thumb_size");
 				}.bind(this)
 			});
 
@@ -850,7 +850,7 @@ Class.create("FilesList", SelectableElements, {
 
 		this.notify("resize");
 	},
-	
+
 	/**
 	 * Adds a pagination navigator at the top of the current GUI
 	 * @returns HTMLElement
@@ -881,7 +881,7 @@ Class.create("FilesList", SelectableElements, {
 			if(event.keyCode == Event.KEY_RETURN){
 				Event.stop(event);
 				var new_page = parseInt(currentInput.getValue());
-				if(new_page == current) return; 
+				if(new_page == current) return;
 				if(new_page < 1 || new_page > total){
 					ajaxplorer.displayMessage('ERROR', MessageHash[335] +' '+ total);
 					currentInput.setValue(current);
@@ -894,7 +894,7 @@ Class.create("FilesList", SelectableElements, {
 		}.bind(this) );
 		return div;
 	},
-	
+
 	/**
 	 * Utility for generating pagination link
 	 * @param page Integer Target page
@@ -908,9 +908,9 @@ Class.create("FilesList", SelectableElements, {
 			node.getMetadata().get("paginationData").set("new_page", page);
 			ajaxplorer.updateContextData(node);
 			Event.stop(e);
-		}.bind(this));		
+		}.bind(this));
 	},
-	
+
 	/**
 	 * Sets the columns definition object
 	 * @param aColumns $H
@@ -921,7 +921,7 @@ Class.create("FilesList", SelectableElements, {
 			this.initGUI();
 		}
 	},
-	
+
 	/**
 	 * Gets the columns definition object
 	 * @returns $H
@@ -929,13 +929,13 @@ Class.create("FilesList", SelectableElements, {
 	getColumnsDef:function(){
 		return this.columnsDef;
 	},
-	
+
 	/**
 	 * Sets the contextual menu
 	 * @param protoMenu Proto.Menu
 	 */
 	setContextualMenu: function(protoMenu){
-		this.protoMenu = protoMenu;	
+		this.protoMenu = protoMenu;
 	},
 
     getCurrentContextNode : function(){
@@ -954,14 +954,14 @@ Class.create("FilesList", SelectableElements, {
     			try{marginBottom = parseInt(eval(expr));}catch(e){}
     		}
     		fitHeightToBottom(this.htmlElement, (this.options.fitParent?$(this.options.fitParent):null), expr);
-    	}		
+    	}
     	if(this.htmlElement.down('.table_rows_container') && Prototype.Browser.IE && this.gridStyle == "file"){
             this.htmlElement.down('.table_rows_container').setStyle({width:'100%'});
     	}
 		this.notify("resize");
         document.fire("ajaxplorer:resize-FilesList-" + this.htmlElement.id, this.htmlElement.getDimensions());
     },
-	
+
 	/**
 	 * Link focusing to ajaxplorer main
 	 */
@@ -971,15 +971,15 @@ Class.create("FilesList", SelectableElements, {
 		}.bind(this) ;
         this._registerObserver(this.htmlElement, "click", clickObserver);
 	},
-	
+
 	/**
 	 * Do nothing
 	 * @param show Boolean
 	 */
 	showElement : function(show){
-		
+
 	},
-	
+
 	/**
 	 * Switch between various display modes. At the moment, thumb and list.
 	 * Should keep the selected nodes after switch
@@ -1009,7 +1009,7 @@ Class.create("FilesList", SelectableElements, {
 		}
 		return this._displayMode;
 	},
-	
+
 	/**
 	 * Returns the display mode
 	 * @returns {String}
@@ -1038,7 +1038,7 @@ Class.create("FilesList", SelectableElements, {
 		// Disable text select on elements
 		if(this._displayMode == "thumb" || this._displayMode == "detail")
 		{
-			this.resizeThumbnails();		
+			this.resizeThumbnails();
 			if(this.protoMenu) this.protoMenu.addElements('#selectable_div-'+this.__currentInstanceIndex);
 			window.setTimeout(function(){
                 this._previewFactory.setThumbSize((this._displayMode=='detail'? this._detailThumbSize:this._thumbSize));
@@ -1065,9 +1065,9 @@ Class.create("FilesList", SelectableElements, {
 
 	/**
 	 * Triggers a reload of the rows/thumbs
-	 * @param additionnalParameters Object
+	 * @param additionalParameters Object
 	 */
-	reload: function(additionnalParameters){
+	reload: function(additionalParameters){
 		if(this.getCurrentContextNode()){
             this.empty();
 			this.fill(this.getCurrentContextNode());
@@ -1251,7 +1251,7 @@ Class.create("FilesList", SelectableElements, {
 		this.gridStyle = 'file';
 		this.even = false;
 		this._oSortTypes = this.defaultSortTypes;
-		
+
 		var hasPagination = (this.paginationData?true:false);
 		if(contextNode.getMetadata().get("paginationData")){
 			this.paginationData = contextNode.getMetadata().get("paginationData");
@@ -1273,16 +1273,16 @@ Class.create("FilesList", SelectableElements, {
 			this.restoreConfig = null;
 			refreshGUI = true;
 		}
-		
+
 		if(refreshGUI){
 			this.initGUI();
 		}
-		
+
 		// NOW PARSE LINES
-		this.parsingCache = new Hash();		
+		this.parsingCache = new Hash();
 		var children = contextNode.getChildren();
         var renderer = this.getRenderer();// (this._displayMode == "list"?this.ajxpNodeToTableRow.bind(this):this.ajxpNodeToDiv.bind(this));
-		for (var i = 0; i < children.length ; i++) 
+		for (var i = 0; i < children.length ; i++)
 		{
 			var child = children[i];
 			var newItem;
@@ -1295,7 +1295,7 @@ Class.create("FilesList", SelectableElements, {
             child.observe("node_removed", newItem.REMOVE_OBS);
 		}
 		this.initRows();
-		
+
 		if((!this.paginationData || !this.paginationData.get('remote_order')))
 		{
 			this._sortableTable.sortColumn = -1;
@@ -1325,7 +1325,7 @@ Class.create("FilesList", SelectableElements, {
 		}
 		//if(modal.pageLoading) modal.updateLoadingProgress('List Loaded');
 	},
-		
+
 	/**
 	 * Inline Editing of label
 	 * @param callback Function Callback after the label is edited.
@@ -1363,7 +1363,7 @@ Class.create("FilesList", SelectableElements, {
 		var pos = posSpan.cumulativeOffset();
 		var text = span.innerHTML;
 		var edit = new Element('input', {value:item.ajxpNode.getLabel('text'), id:'editbox'}).setStyle({
-			zIndex:5000, 
+			zIndex:5000,
 			position:'absolute',
 			marginLeft:'0px',
 			marginTop:'0px',
@@ -1371,7 +1371,7 @@ Class.create("FilesList", SelectableElements, {
             padding: 0
 		});
         edit.setStyle(addStyle);
-		$(document.getElementsByTagName('body')[0]).insert({bottom:edit});				
+		$(document.getElementsByTagName('body')[0]).insert({bottom:edit});
 		modal.showContent('editbox', (posSpan.getWidth()-offset.left)+'', '26', true, false, {opacity:0.25, backgroundColor:'#fff'});
 		edit.setStyle({left:(pos.left+offset.left)+'px', top:(pos.top+offset.top-scrollTop)+'px'});
 		window.setTimeout(function(){
@@ -1380,9 +1380,9 @@ Class.create("FilesList", SelectableElements, {
 			if(end == -1){
 				edit.select();
 			}else{
-				var start = 0;  
+				var start = 0;
 				if(edit.setSelectionRange)
-				{				
+				{
 					edit.setSelectionRange(start,end);
 				}
 				else if (edit.createTextRange) {
@@ -1393,16 +1393,16 @@ Class.create("FilesList", SelectableElements, {
 					range.select();
 				}
 			}
-			
+
 		}, 300);
 		var onOkAction = function(){
 			var newValue = edit.getValue();
 			hideLightBox();
-			modal.close();			
+			modal.close();
 			callback(item.ajxpNode, newValue);
 		};
 		edit.observe("keydown", function(event){
-			if(event.keyCode == Event.KEY_RETURN){				
+			if(event.keyCode == Event.KEY_RETURN){
 				Event.stop(event);
 				onOkAction();
 			}
@@ -1424,7 +1424,7 @@ Class.create("FilesList", SelectableElements, {
             newWidth -= 20;
         }
 		edit.setStyle({width:newWidth+'px'});
-		
+
 		buttons.select('input').invoke('setStyle', {
 			margin:0,
 			width:'22px',
@@ -1446,7 +1446,7 @@ Class.create("FilesList", SelectableElements, {
 		span.setStyle({color:'#ddd'});
 		modal.setCloseAction(closeFunc);
 	},
-	
+
 	/**
 	 * Populate a node as a TR element
 	 * @param ajxpNode AjxpNode
@@ -1462,7 +1462,7 @@ Class.create("FilesList", SelectableElements, {
 			//newRow.setAttribute(pair.key, pair.value);
 			if(Prototype.Browser.IE && pair.key == "ID"){
 				newRow.setAttribute("ajxp_sql_"+pair.key, pair.value);
-			}			
+			}
 		});
 		var attributeList;
 		if(!this.parsingCache.get('attributeList')){
@@ -1477,8 +1477,8 @@ Class.create("FilesList", SelectableElements, {
 		}
 		var attKeys = attributeList.keys();
 		for(var i = 0; i<attKeys.length;i++ ){
-			var s = attKeys[i];			
-			var tableCell = new Element("td");			
+			var s = attKeys[i];
+			var tableCell = new Element("td");
 			var fullview = '';
 			if(this._fullview){
 				fullview = ' full';
@@ -1522,13 +1522,13 @@ Class.create("FilesList", SelectableElements, {
                 });
 
 				var innerSpan = new Element("span", {
-					className:"list_selectable_span", 
+					className:"list_selectable_span",
 					style:"cursor:default;display:block;"
 				}).update(textLabel);
 
 				innerSpan.ajxpNode = ajxpNode; // For draggable
 				tableCell.insert(innerSpan);
-				
+
 				// Defer Drag'n'drop assignation for performances
                 if(this.options.draggable == undefined || this.options.draggable === true){
                     window.setTimeout(function(){
@@ -1552,7 +1552,7 @@ Class.create("FilesList", SelectableElements, {
                         }
                     }.bind(this), 500);
                 }
-				
+
 			}else if(s=="ajxp_modiftime"){
 				var date = new Date();
 				date.setTime(parseInt(metaData.get(s))*1000);
@@ -1565,13 +1565,13 @@ Class.create("FilesList", SelectableElements, {
 				tableCell.update('<span class="text_label'+fullview+'">' + metaValue  + "</span>");
 			}
 			if(this.gridStyle == "grid"){
-				tableCell.setAttribute('valign', 'top');				
+				tableCell.setAttribute('valign', 'top');
 				tableCell.setStyle({
-					verticalAlign:'top', 
+					verticalAlign:'top',
 					borderRight:'1px solid #eee'
 				});
 				if(this.even){
-					tableCell.setStyle({borderRightColor: '#fff'});					
+					tableCell.setStyle({borderRightColor: '#fff'});
 				}
 				if (tableCell.innerHTML == '') tableCell.innerHTML = '&nbsp;';
 			}
@@ -1619,7 +1619,7 @@ Class.create("FilesList", SelectableElements, {
 
         return newRow;
 	},
-	
+
 	/**
 	 * Populates a node as a thumbnail div
 	 * @param ajxpNode AjxpNode
@@ -1630,7 +1630,7 @@ Class.create("FilesList", SelectableElements, {
             className:"thumbnail_selectable_cell",
             id:slugString(ajxpNode.getPath())});
 		var metadata = ajxpNode.getMetadata();
-				
+
 		var innerSpan = new Element('span', {style:"cursor:default;"});
 
         var img = this._previewFactory.generateBasePreview(ajxpNode);
@@ -1640,7 +1640,7 @@ Class.create("FilesList", SelectableElements, {
 			className:"thumbLabel",
 			title:textNode
 		}).update(textNode);
-		
+
 		innerSpan.insert({"bottom":img});
 		innerSpan.insert({"bottom":label});
 		newRow.insert({"bottom": innerSpan});
@@ -1675,7 +1675,7 @@ Class.create("FilesList", SelectableElements, {
         }
 
 		this._htmlElement.insert(newRow);
-			
+
 		var modifiers ;
 		if(!this.parsingCache.get('modifiers')){
 			modifiers = $A();
@@ -1686,7 +1686,7 @@ Class.create("FilesList", SelectableElements, {
 					}catch(e){}
 				}
 			});
-			this.parsingCache.set('modifiers', modifiers);			
+			this.parsingCache.set('modifiers', modifiers);
 		}else{
 			modifiers = this.parsingCache.get('modifiers');
 		}
@@ -1695,7 +1695,7 @@ Class.create("FilesList", SelectableElements, {
 		});
 
         this._previewFactory.enrichBasePreview(ajxpNode, newRow);
-		
+
 		// Defer Drag'n'drop assignation for performances
 		if(!ajxpNode.isRecycle()){
 			window.setTimeout(function(){
@@ -1716,7 +1716,7 @@ Class.create("FilesList", SelectableElements, {
 
         return newRow;
 	},
-		
+
 	/**
 	 * Populates a node as a thumbnail div
 	 * @param ajxpNode AjxpNode
@@ -1908,9 +1908,9 @@ Class.create("FilesList", SelectableElements, {
 			return;
 		}
 		var percent = parseInt( parseInt(ajxpNode.getMetadata().get("bytesize")) / parseInt(ajxpNode.getMetadata().get("target_bytesize")) * 100  );
-		var uuid = 'ajxp_'+(new Date()).getTime();		
+		var uuid = 'ajxp_'+(new Date()).getTime();
 		var div = new Element('div', {style:'padding-left:3px;', className:'text_label'}).update('<span class="percent_text" style="line-height:19px;padding-left:5px;">'+percent+'%</span>');
-		var span = new Element('span', {id:uuid}).update('0%');		
+		var span = new Element('span', {id:uuid}).update('0%');
 		var options = {
 			animate		: true,										// Animate the progress? - default: true
 			showText	: false,									// show text with percentage in next to the progressbar? - default : true
@@ -1942,13 +1942,13 @@ Class.create("FilesList", SelectableElements, {
 				};
 				conn.sendAsync();
 			});
-			div.insert({bottom:stopButton});			
+			div.insert({bottom:stopButton});
 		}
 		span.setAttribute('data-target_size', ajxpNode.getMetadata().get("target_bytesize"));
 		window.setTimeout(function(){
 			span.pgBar = new JS_BRAMUS.jsProgressBar(span, percent, options);
 			var pe = new PeriodicalExecuter(function(){
-				if(!$(uuid)){ 
+				if(!$(uuid)){
 					pe.stop();
 					return;
 				}
@@ -1972,15 +1972,15 @@ Class.create("FilesList", SelectableElements, {
 			$(uuid).pe = pe;
 		}, 2);
 	},
-	
+
 	/**
 	 * Resize the thumbnails
 	 * @param one_element HTMLElement Optionnal, if empty all thumbnails are resized.
 	 */
 	resizeThumbnails: function(one_element){
-			
+
 		var elList;
-		if(one_element) elList = [one_element]; 
+		if(one_element) elList = [one_element];
 		else elList = this._htmlElement.select('div.thumbnail_selectable_cell');
 		elList.each(function(element){
             if(element.up('div.thumbnail_selectable_cell.detailed')) return;
@@ -2009,18 +2009,18 @@ Class.create("FilesList", SelectableElements, {
             }
 
 		}.bind(this));
-		
+
 	},
 	/**
 	 * For list mode, recompute alternate BG distribution
 	 * Should use CSS3 when possible!
 	 */
 	redistributeBackgrounds: function(){
-		var allItems = this.getItems();		
+		var allItems = this.getItems();
 		this.even = false;
 		for(var i=0;i<allItems.length;i++){
 			if(this.even){
-				$(allItems[i]).addClassName('even').removeClassName('odd');				
+				$(allItems[i]).addClassName('even').removeClassName('odd');
 			}else{
 				$(allItems[i]).removeClassName('even').addClassName('odd');
 			}
@@ -2028,7 +2028,7 @@ Class.create("FilesList", SelectableElements, {
 		}
 	},
 	/**
-	 * Clear the current lines/thumbs 
+	 * Clear the current lines/thumbs
 	 */
 	removeCurrentLines: function(skipFireChange){
         this.notify("rows:willClear");
@@ -2057,7 +2057,7 @@ Class.create("FilesList", SelectableElements, {
 				}
 
             }catch(e){
-			}			
+			}
 			if(rows[i].parentNode){
 				rows[i].remove();
 			}
@@ -2089,12 +2089,12 @@ Class.create("FilesList", SelectableElements, {
 		removeLightboxFromElement(element);
 		this.loading = false;
 	},
-	
+
 	/**
 	 * Overrides base fireChange function
 	 */
 	fireChange: function()
-	{		
+	{
 		if(this._fireChange){
             if(this._dataModel){
                 this._dataModel.setSelectedNodes(this.getSelectedNodes());
@@ -2103,11 +2103,11 @@ Class.create("FilesList", SelectableElements, {
             }
 		}
 	},
-	
+
 	/**
 	 * Overrides base fireDblClick function
 	 */
-	fireDblClick: function (e) 
+	fireDblClick: function (e)
 	{
 		if(this.getCurrentContextNode().getAjxpMime() == "ajxp_recycle")
 		{
@@ -2160,7 +2160,7 @@ Class.create("FilesList", SelectableElements, {
 		}
 		return;
 	},
-	
+
 	/**
 	 * Utilitary for selection behaviour
 	 * @param target HTMLElement
@@ -2173,7 +2173,7 @@ Class.create("FilesList", SelectableElements, {
 		target.unselectable = "off";
 		target.style.MozUserSelect = "text";
 	},
-	
+
 	/**
 	 * Utilitary for selection behaviour
 	 * @param target HTMLElement
@@ -2195,7 +2195,7 @@ Class.create("FilesList", SelectableElements, {
 			}.bind(this));
 		}
 	},
-	
+
 	/**
 	 * Handler for keyDown event
 	 * @param event Event
@@ -2220,14 +2220,14 @@ Class.create("FilesList", SelectableElements, {
 		{
 			return false;
 		}
-		
+
 		// CREATE A COPY TO COMPARE WITH AFTER CHANGES
 		// DISABLE FIRECHANGE CALL
 		var oldFireChange = this._fireChange;
 		this._fireChange = false;
 		var selectedBefore = this.getSelectedItems();	// is a cloned array
-		
-		
+
+
 		Event.stop(event);
 		var nextItem;
 		var currentItem;
@@ -2268,7 +2268,7 @@ Class.create("FilesList", SelectableElements, {
 		else if(event.keyCode == Event.KEY_UP)
 		{
 			if(this._displayMode != 'thumb') nextItem = this.getPrevious(currentItem);
-			else{			
+			else{
 				 nextItemIndex = this.findOverlappingItem(currentItemIndex, false);
 				 if(nextItemIndex != null){ nextItem = allItems[nextItemIndex];selectLine = true;}
 			}
@@ -2290,18 +2290,18 @@ Class.create("FilesList", SelectableElements, {
 		{
 			nextItem = this.getNext(currentItem);
 		}
-		
+
 		if(nextItem == null)
 		{
 			this._fireChange = oldFireChange;
 			return false;
 		}
 		if(!shiftKey || !this._multiple) // Unselect everything
-		{ 
+		{
 			for(var i=0; i<items.length; i++)
 			{
 				this.setItemSelected(items[i], false);
-			}		
+			}
 		}
 		else if(selectLine)
 		{
@@ -2313,8 +2313,8 @@ Class.create("FilesList", SelectableElements, {
 			}
 		}
 		this.setItemSelected(nextItem, !nextItem._selected);
-		
-		
+
+
 		// NOW FIND CHANGES IN SELECTION!!!
 		var found;
 		var changed = selectedBefore.length != this._selectedItems.length;
@@ -2333,27 +2333,27 @@ Class.create("FilesList", SelectableElements, {
 				}
 			}
 		}
-	
+
 		this._fireChange = oldFireChange;
 		if (changed && this._fireChange){
 			this.fireChange();
-		}		
-		
+		}
+
 		return false;
 	},
 	/**
-	 * Utilitary to find the next item to select, depending on the key (up or down) 
+	 * Utilitary to find the next item to select, depending on the key (up or down)
 	 * @param currentItemIndex Integer
 	 * @param bDown Boolean
 	 * @returns Integer|null
 	 */
 	findOverlappingItem: function(currentItemIndex, bDown)
-	{	
+	{
 		if(!bDown && currentItemIndex == 0) return null;
 		var allItems = this.getItems();
 		if(bDown && currentItemIndex == allItems.length - 1) return null;
-		
-		var element = $(allItems[currentItemIndex]);	
+
+		var element = $(allItems[currentItemIndex]);
 		var pos = Position.cumulativeOffset(element);
 		var dims = Element.getDimensions(element);
 		var searchingPosX = pos[0] + parseInt(dims.width/2);
@@ -2376,8 +2376,8 @@ Class.create("FilesList", SelectableElements, {
 			}
 			return null;
 		}
-	},	
-	
+	},
+
 	/**
 	 * Check if a domnode is indeed an item of the list
 	 * @param node DOMNode
@@ -2396,7 +2396,7 @@ Class.create("FilesList", SelectableElements, {
 				node.parentNode == this._htmlElement;
 		}
 	},
-	
+
 	/* Indexable Collection Interface */
 	/**
 	 * Get all items
@@ -2441,7 +2441,7 @@ Class.create("FilesList", SelectableElements, {
 				if (cs[i].nodeType == 1)
 					j++;
 			}
-			return -1;		
+			return -1;
 		}
 	},
 	/**

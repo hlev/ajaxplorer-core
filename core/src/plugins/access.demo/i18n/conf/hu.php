@@ -18,14 +18,14 @@
 *
 * The latest code can be found at <http://www.ajaxplorer.info/>.
 */
+// Hungarian translation: Levente Huszkó <levente.huszko@gmail.com>
 $mess=array(
-"WebDAV (PEAR)" => "WebDAV (PEAR)",
-"Access a WebDAV server. Requires PEAR/HTTP_WebDAVClient installed with the patched found in the plugin folder applied." => "Access a WebDAV server. Requires PEAR/HTTP_WebDAVClient installed with the patched found in the plugin folder applied.",
-"Host" => "Host",
-"Host of the WebDAV server, with http/https and without trailing slash. Can contain user:password too." => "Host of the WebDAV server, with http/https and without trailing slash. Can contain user:password too.",
-"Uri" => "Uri",
-"Path to the root folder on the server" => "Path to the root folder on the server",
-"File Creation Mask" => "File Creation Mask",
-"Optionally apply a chmod operation. Value must be numeric, like 0777, 0644, etc." => "Optionally apply a chmod operation. Value must be numeric, like 0777, 0644, etc.",
+"Demo (no write actions)" => "Demó (csak olvasható)",
+"This is a standard access to the filesystem but with all write actions disabled server-side." => "Standard hozzáférés a fájlrendszerhez, de az írási műveletek szerver-oldalon ki vannak kapcsolva.",
+"Path" => "Útvonal",
+"Real path to the root folder on the server" => "A szerver root könyvtárának valódi útvonala",
+"Create" => "Létrehoz",
+"Create folder if it does not exists" => "Könyvtár létrehozása, ha nem létezik",
+"Recycle Bin Folder" => "Kuka",
+"Leave empty if you do not want to use a recycle bin." => "Hagyd üresen, ha nem akarod használni a kukát.",
 );
-?>

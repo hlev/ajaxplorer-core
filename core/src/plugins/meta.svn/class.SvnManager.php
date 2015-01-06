@@ -30,37 +30,37 @@ if(SVNLIB_PATH != ""){
  * @subpackage Meta
  */
 class SvnManager extends AJXP_Plugin {
-	
+
 	private static $svnListDir;
-	private static $svnListCache;	
+	private static $svnListCache;
 	private $commitMessageParams;
-	
+
 	protected $accessDriver;
-	
+
 	public function init($options){
-		$this->options = $options;		
+		$this->options = $options;
 		// Do nothing
 	}
-	
+
 	public function initMeta($accessDriver){
         require_once("svn_lib.inc.php");
 
 		$this->accessDriver = $accessDriver;
 		parent::init($this->options);
-	
+
 	}
-	
-	protected function initDirAndSelection($httpVars, $additionnalPathes = array(), $testRecycle = false){
+
+	protected function initDirAndSelection($httpVars, $additionalPaths = array(), $testRecycle = false){
 		$userSelection = new UserSelection();
 		$userSelection->initFromHttpVars($httpVars);
 		$repo = ConfService::getRepository();
 		$repo->detectStreamWrapper();
 		$wrapperData = $repo->streamData;
-		$urlBase = $wrapperData["protocol"]."://".$repo->getId();		
+		$urlBase = $wrapperData["protocol"]."://".$repo->getId();
 		$result = array();
 
 		if($testRecycle){
-			$recycle = $repo->getOption("RECYCLE_BIN");		
+			$recycle = $repo->getOption("RECYCLE_BIN");
 			if($recycle != ""){
 				RecycleBinManager::init($urlBase, "/".$recycle);
 				$result["RECYCLE"] = RecycleBinManager::filterActions($httpVars["get_action"], $userSelection, $httpVars["dir"], $httpVars);
@@ -76,22 +76,22 @@ class SvnManager extends AJXP_Plugin {
 				}
 			}
 		}
-		
-		$result["DIR"] = call_user_func(array($wrapperData["classname"], "getRealFSReference"), $urlBase.AJXP_Utils::decodeSecureMagic($httpVars["dir"]));		
+
+		$result["DIR"] = call_user_func(array($wrapperData["classname"], "getRealFSReference"), $urlBase.AJXP_Utils::decodeSecureMagic($httpVars["dir"]));
 		$result["ORIGINAL_SELECTION"] = $userSelection;
 		$result["SELECTION"] = array();
 		if(!$userSelection->isEmpty()){
 			$files = $userSelection->getFiles();
 			foreach ($files as $selected){
 				$result["SELECTION"][] = call_user_func(array($wrapperData["classname"], "getRealFSReference"), $urlBase.$selected);
-			}			
+			}
 		}
-		foreach ($additionnalPathes as $parameter => $path){
+		foreach ($additionalPaths as $parameter => $path){
 			$result[$parameter] = call_user_func(array($wrapperData["classname"], "getRealFSReference"), $urlBase.$path);
 		}
 		return $result;
 	}
-		
+
 	protected function addIfNotVersionned($repoFile, $realFile){
         $error = false;
         try{
@@ -116,7 +116,7 @@ class SvnManager extends AJXP_Plugin {
 		$repo->detectStreamWrapper();
 		$wrapperData = $repo->streamData;
 		$realFile = call_user_func(array($wrapperData["classname"], "getRealFSReference"), $file);
-		
+
 		$res = ExecSvnCmd("svn status ", $realFile);
 		if(count($res[IDX_STDOUT]) && substr($res[IDX_STDOUT][0],0,1) == "?"){
 			$res2 = ExecSvnCmd("svn add", "$realFile");
@@ -139,7 +139,7 @@ class SvnManager extends AJXP_Plugin {
             $this->commitChanges("COMMIT_META", $realFile, array());
         }
 	}
-	
+
 	public function switchAction($actionName, $httpVars, $filesVars){
 		$init = $this->initDirAndSelection($httpVars);
 		if($actionName == "svnlog"){
@@ -154,7 +154,7 @@ class SvnManager extends AJXP_Plugin {
 			$switches = '--xml -rHEAD:0';
 			$arg = $init["SELECTION"][0];
 			$res = ExecSvnCmd($command, $arg, $switches);
-			AJXP_XMLWriter::header();	
+			AJXP_XMLWriter::header();
 			$lines = explode(PHP_EOL, $res[IDX_STDOUT]);
 			array_shift($lines);
 			if(isSet($currentRev)){
@@ -168,7 +168,7 @@ class SvnManager extends AJXP_Plugin {
 			$revision = $httpVars["revision"];
 			$realFile = $init["SELECTION"][0];
 			$entries = $this->svnListNode($realFile, $revision);
-			$keys = array_keys($entries); 
+			$keys = array_keys($entries);
 			$localName = $keys[0];
 			$contentSize = 0;
 			if(isSet($entries[$localName]["last_revision_size"])){
@@ -211,8 +211,8 @@ class SvnManager extends AJXP_Plugin {
 			ExecSvnCmd("svn update -r$revision ".$init["DIR"]);
 		}
 	}
-	
-	public function addSelection($actionName, $httpVars, $filesVars){		
+
+	public function addSelection($actionName, $httpVars, $filesVars){
 		switch ($actionName){
 			case "mkdir":
 				$init = $this->initDirAndSelection($httpVars, array("NEW_DIR" => AJXP_Utils::decodeSecureMagic($httpVars["dir"]."/".$httpVars["dirname"])));
@@ -242,7 +242,7 @@ class SvnManager extends AJXP_Plugin {
 			$this->commitChanges($actionName, $httpVars, $filesVars);
 		}
 	}
-	
+
 	public function copyOrMoveSelection($actionName, &$httpVars, $filesVars){
 		if($actionName != "rename"){
 			$init = $this->initDirAndSelection($httpVars, array("DEST_DIR" => AJXP_Utils::decodeSecureMagic($httpVars["dest"])));
@@ -254,13 +254,13 @@ class SvnManager extends AJXP_Plugin {
 		$action = 'copy';
 		if($actionName == "move" || $actionName == "rename"){
 			$action = 'move';
-		}		
+		}
 		foreach ($init["SELECTION"] as $selectedFile){
 			if($actionName == "rename"){
 				$destFile = dirname($selectedFile)."/".AJXP_Utils::decodeSecureMagic($httpVars["filename_new"]);
 				$this->commitMessageParams = "To:".$httpVars["filename_new"].";item:".$httpVars["file"];
 			}else{
-				$destFile = $init["DEST_DIR"]."/".basename($selectedFile);			
+				$destFile = $init["DEST_DIR"]."/".basename($selectedFile);
 			}
             $this->addIfNotVersionned(str_replace($init["DIR"], "", $selectedFile), $selectedFile);
 			$res = ExecSvnCmd("svn $action", array($selectedFile,$destFile), '');
@@ -276,10 +276,10 @@ class SvnManager extends AJXP_Plugin {
 		AJXP_XMLWriter::header();
 		AJXP_XMLWriter::sendMessage("The selected files/folders have been copied/moved (by SVN)", null);
 		AJXP_XMLWriter::reloadDataNode();
-		AJXP_XMLWriter::close();		
+		AJXP_XMLWriter::close();
 	}
-	
-	public function deleteSelection($actionName, &$httpVars, $filesVars){		
+
+	public function deleteSelection($actionName, &$httpVars, $filesVars){
 		$init = $this->initDirAndSelection($httpVars, array(), true);
 		if(isSet($init["RECYCLE"]) && isSet($init["RECYCLE"]["action"]) && $init["RECYCLE"]["action"] != "delete"){
 			$httpVars["dest"] = SystemTextEncoding::fromUTF8($init["RECYCLE"]["dest"]);
@@ -293,7 +293,7 @@ class SvnManager extends AJXP_Plugin {
 			}else if($actionName == "restore"){
 				foreach ($files as $file){
 					RecycleBinManager::deleteFromRecycle($file);
-				}				
+				}
 			}
 			$this->commitChanges($actionName, array("dir" => RecycleBinManager::getRelativeRecycle()), $filesVars);
 			return ;
@@ -309,7 +309,7 @@ class SvnManager extends AJXP_Plugin {
 		AJXP_XMLWriter::reloadDataNode();
 		AJXP_XMLWriter::close();
 	}
-		
+
 	public function commitChanges($actionName, $httpVars, $filesVars){
 		if(is_array($httpVars)){
 			$init = $this->initDirAndSelection($httpVars);
@@ -322,7 +322,7 @@ class SvnManager extends AJXP_Plugin {
             return;
         }
 		$command = "svn commit";
-		$user = AuthService::getLoggedUser()->getId();		
+		$user = AuthService::getLoggedUser()->getId();
 		$switches = "-m \"AjaXplorer||$user||$actionName".(isSet($this->commitMessageParams)?"||".$this->commitMessageParams:"")."\"";
 		$res = ExecSvnCmd($command, $args, $switches);
         if(is_file($args)){
@@ -354,7 +354,7 @@ class SvnManager extends AJXP_Plugin {
 			$ajxpNode->mergeMetadata($entries[$fileId]);
 		}
 	}
-	
+
 	protected function svnListNode($realPath, $revision = null){
 		$command = 'svn list';
 		$switches = '--xml';
@@ -377,18 +377,18 @@ class SvnManager extends AJXP_Plugin {
 		$entries = array();
 		foreach ($entriesList as $entry){
 			$logEntry = array();
-			$name = $xPath->query("name", $entry)->item(0)->nodeValue;			
+			$name = $xPath->query("name", $entry)->item(0)->nodeValue;
 			$logEntry["last_revision"] = $xPath->query("commit/@revision", $entry)->item(0)->value;
 			$logEntry["last_revision_author"] = $xPath->query("commit/author", $entry)->item(0)->nodeValue;
 			$logEntry["last_revision_date"] = $xPath->query("commit/date", $entry)->item(0)->nodeValue;
 			$logEntry["last_revision_date"] = $xPath->query("size", $entry)->item(0)->nodeValue;
 			$entries[$name] = $logEntry;
 		}
-		return $entries;		
+		return $entries;
 	}
-	
 
-		
+
+
 }
 
 ?>

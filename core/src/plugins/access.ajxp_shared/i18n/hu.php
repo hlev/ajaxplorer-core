@@ -55,5 +55,5 @@ $mess=array(
 "31"=> "Leírás",
 "32"=> "Nullázás",
 "33"=> "A letöltésszámláló nullázása",
-); 
+);
 ?>
