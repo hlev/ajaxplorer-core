@@ -115,7 +115,7 @@ if(AuthService::usersEnabled())
    	}
 
 }else{
-	AJXP_Logger::debug(ConfService::getCurrentRootDirIndex());	
+	AJXP_Logger::debug(ConfService::getCurrentRootDirIndex());
 }
 
 //Set language
@@ -128,11 +128,11 @@ else if(isSet($_COOKIE["AJXP_lang"])) ConfService::setLanguage($_COOKIE["AJXP_la
 //------------------------------------------------------------
 if(AuthService::usersEnabled())
 {
-	$loggedUser = AuthService::getLoggedUser();	
+	$loggedUser = AuthService::getLoggedUser();
 	if($action == "upload" && ($loggedUser == null || !$loggedUser->canWrite(ConfService::getCurrentRootDirIndex()."")) && isSet($_FILES['Filedata']))
 	{
-		header('HTTP/1.0 ' . '410 Not authorized');
-		die('Error 410 Not authorized!');
+		header('HTTP/1.0 ' . '401 Unauthorized');
+		die('Error 401 Unauthorized!');
 	}
 }
 
