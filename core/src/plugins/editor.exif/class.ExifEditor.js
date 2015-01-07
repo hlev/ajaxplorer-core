@@ -1,32 +1,27 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 Class.create("ExifEditor", AbstractEditor, {
 
-	initialize: function($super, oFormObject)
+	initialize: function($super, oFormObject, options)
 	{
-		$super(oFormObject);
-		this.actions.get("downloadFileButton").observe('click', function(){
-			if(!this.currentFile) return;		
-			ajaxplorer.triggerDownload(ajxpBootstrap.parameters.get('ajxpServerAccess')+'&action=download&file='+this.currentFile);
-			return false;
-		}.bind(this));
+		$super(oFormObject, options);
 		this.element.observe("editor:resize", function(){
 			this.columnsLayout(true);
 		}.bind(this));				
@@ -108,8 +103,8 @@ Class.create("ExifEditor", AbstractEditor, {
 			this.contentMainContainer.insert(div);
 			var sectionName = sections[i].getAttribute("name");
 			div.insert('<div class="panelHeader infoPanelGroup">'+sectionName+'</div>');
-			div.insert('<table class="infoPanelTable" '+(Prototype.Browser.IE?'style="width:97%;"':'')+' cellspacing="0" ><tbody></tbody></table>');
-			var tBody = div.down('tbody');
+			div.insert('<div class="infoPanelTable"></div>');
+			var tBody = div.down('div.infoPanelTable');
 			var even = false;
 			this.itemsCount ++;
 			for(var j=0;j<tags.length;j++){
@@ -122,7 +117,7 @@ Class.create("ExifEditor", AbstractEditor, {
 						this.gpsData[tagName] = split[1];
 						tagValue = split[0];
 					}
-					tBody.insert('<tr'+(even?' class="even"':'')+'><td class="infoPanelLabel">'+tagName+'</td><td class="infoPanelValue">'+tagValue+'</td></tr>');
+					tBody.insert('<div'+(even?' class="even"':'')+'><div class="infoPanelLabel">'+tagName+'</div><div class="infoPanelValue">'+tagValue+'</div></div>');
 					even = !even;
 					this.itemsCount ++;
 				}catch(e){}

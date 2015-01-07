@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  * Description : Class for simple XHR multiple upload, HTML5 only
  */
 Class.create("XHRUploader", {
@@ -25,8 +25,13 @@ Class.create("XHRUploader", {
     mainForm: null,
     id : null,
     rowAsProgressBar: false,
+    dataModel: null,
+    contextNode: null,
+    currentBackgroundPanel: null,
 
 	initialize : function( formObject, mask ){
+
+        window.UploaderInstanceRunning = true;
 
 		formObject = $(formObject);
 		// Main form
@@ -55,13 +60,36 @@ Class.create("XHRUploader", {
 			this.mask = $A(mask.split(","));
             this.maskLabel = this._globalConfigs.get("ALLOWED_EXTENSIONS_READABLE");
 		}
-		this.crtContext = ajaxplorer.getUserSelection();
+		this.dataModel = ajaxplorer.getContextHolder();
+        this.contextNode = this.dataModel.getContextNode();
+
+        if(window.UploaderDroppedTarget && window.UploaderDroppedTarget.ajxpNode){
+            //console.log(this.contextNode);
+            this.contextNode = window.UploaderDroppedTarget.ajxpNode;
+        }
 
 		this.clearList();
 		
 		// INITIALIZE GUI, IF NOT ALREADY!
 		this.sendButton = formObject.down('#uploadSendButton');
         this.sendButton.addClassName("disabled");
+        modal.setCloseValidation(function(){
+            if(this.hasLoadingItem()){
+                var panels = $$('div.backgroundPanel');
+                var panel;
+                if(!panels.length){
+                    panel = new Element('div', {className:'backgroundPanel'});
+                    ajxpBootstrap.parameters.get("MAIN_ELEMENT").insert(panel);
+                }else{
+                    panel = panels[0];
+                }
+                this.attachToBackgroundPanel(panel);
+            }else{
+                window.UploaderInstanceRunning = false;
+            }
+            return true;
+        }.bind(this));
+
 		if(this.sendButton.observerSet){
             if(this.mainForm.PROGRESSBAR){
                 this.totalProgressBar = this.mainForm.PROGRESSBAR;
@@ -71,100 +99,178 @@ Class.create("XHRUploader", {
 			this.optionPane = this.mainForm.down('#uploader_options_pane');
 			this.optionPane.loadData();
 			this.updateTotalData();
-			if(window.UploaderDroppedFiles){
-				var files = window.UploaderDroppedFiles;
-				for(var i=0;i<files.length;i++){
-					this.addListRow(files[i]);
-				}
-				if(this.optionPane.autoSendCheck.checked){
-					this.submit();
-				}
-				window.UploaderDroppedFiles = null;
-			}
-			return;		
-		}
-		
-		var optionsButton = formObject.down('#uploadOptionsButton');
-		var closeButton = formObject.down('#uploadCloseButton');
-		this.sendButton.observe("click", function(){
-            if(!this.hasClassName("disabled")){
-			    ajaxplorer.actionBar.multi_selector.submit();
+		}else{
+            this.initGUI();
+        }
+
+        if(window.UploaderDroppedFiles || window.UploaderDroppedItems){
+             this.handleDropEventResults(window.UploaderDroppedItems, window.UploaderDroppedFiles);
+             window.setTimeout(function(){
+                 window.UploaderDroppedItems = window.UploaderDroppedFiles = null;
+             }, 2000);
+        }
+
+	},
+
+    attachToBackgroundPanel: function(panel){
+        panel.show();
+        panel.update('Upload running...');
+        this.currentBackgroundPanel = panel;
+    },
+
+    handleDropEventResults: function(items, files){
+
+        var isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+        if ( !isMac && items && items.length && (items[0].getAsEntry || items[0].webkitGetAsEntry)) {
+            var callback = this.addListRow.bind(this);
+            var error = (console ? console.log : function(err){window.alert(err); }) ;
+            var length = items.length;
+            for (var i = 0; i < length; i++) {
+                var entry;
+                if(items[i].kind && items[i].kind != 'file') continue;
+                if(items[0].getAsEntry){
+                    entry = items[i].getAsEntry();
+                }else{
+                    entry = items[i].webkitGetAsEntry();
+                }
+                if (entry.isFile) {
+                    entry.file(function(File) {
+                        if(File.size == 0) return;
+                        callback(File);
+                    }, error );
+                } else if (entry.isDirectory) {
+                    this.recurseDirectory(entry, function(fileEntry){
+                        var relativePath = fileEntry.fullPath;
+                        fileEntry.file(function(File) {
+                            if(File.size == 0) return;
+                            callback(File, relativePath);
+                        }, error );
+                    }, error );
+                }
             }
-		}.bind(this.sendButton) );
+        }else{
+            for(var j=0;j<files.length;j++){
+                this.addListRow(files[j]);
+            }
+        }
+        this.createdDirs = $A();
+        if(this.optionPane.autoSendCheck.checked){
+             window.setTimeout(this.submit.bind(this), 1000);
+        }
+    },
+
+    recurseDirectory: function(item, completeHandler, errorHandler) {
+
+        var recurseDir = this.recurseDirectory.bind(this);
+        var dirReader = item.createReader();
+        var entries = [];
+
+        var toArray = function(list){
+            return Array.prototype.slice.call(list || [], 0);
+        };
+
+        // Call the reader.readEntries() until no more results are returned.
+        var readEntries = function() {
+            dirReader.readEntries (function(results) {
+                if (!results.length) {
+
+                    $A(entries).each(function(e){
+                        if(e.isDirectory){
+                            recurseDir(e, completeHandler, errorHandler);
+                        }else{
+                            completeHandler(e);
+                        }
+                    });
+                } else {
+                    entries = entries.concat(toArray(results));
+                    readEntries();
+                }
+            }, errorHandler);
+        };
+
+        readEntries(); // Start reading dirs.
+
+    },
+
+    initGUI: function(){
+        var optionsButton = this.mainForm.down('#uploadOptionsButton');
+        var closeButton = this.mainForm.down('#uploadCloseButton');
+        this.sendButton.observe("click", function(){
+            if(!this.hasClassName("disabled")){
+                ajaxplorer.actionBar.multi_selector.submit();
+            }
+        }.bind(this.sendButton) );
         this.sendButton.observerSet = true;
-		optionsButton.observe("click", function(){
-			var optionPane = this.mainForm.down('#uploader_options_pane');
-			var closeSpan = optionsButton.down('span');
-			if(optionPane.visible()) {
-				optionPane.hidePane();
-				closeSpan.hide();
-			}
-			else {
-				optionPane.showPane();
-				closeSpan.show();
-			}
-		}.bind(this));
+        optionsButton.observe("click", function(){
+            var optionPane = this.mainForm.down('#uploader_options_pane');
+            var closeSpan = optionsButton.down('span');
+            if(optionPane.visible()) {
+                optionPane.hidePane();
+                closeSpan.hide();
+            }
+            else {
+                optionPane.showPane();
+                closeSpan.show();
+            }
+        }.bind(this));
         if(closeButton){
             closeButton.observe("click", function(){
                 if(this.hasLoadingItem()) return;
+                window.UploaderInstanceRunning = false;
                 hideLightBox();
             }.bind(this));
         }
 
-		this.initElement(formObject.select('.dialogFocus')[0]);		
-		
-		var dropzone = this.listTarget;
-		dropzone.addClassName('droparea');
-		dropzone.addEventListener("dragover", function(event) {
-				event.preventDefault();
-		}, true);
-		dropzone.addEventListener("dragenter", function(){
-			dropzone.addClassName("dropareaHover");
-		}, true);
-		dropzone.addEventListener("dragleave", function(){
-			dropzone.removeClassName("dropareaHover");
-		}, true);
-		
-		dropzone.addEventListener("drop", function(event) {
-			event.preventDefault();
-			var files = event.dataTransfer.files;
-			for(var i=0;i<files.length;i++){
-				this.addListRow(files[i]);
-			}
-			if(this.optionPane.autoSendCheck.checked){
-				this.submit();
-			}
-		}.bind(this) , true);
-		
-		
-		if(this.mainForm.down('#uploadFilesListContainer')) {
+        this.initElement();
+
+        var dropzone = this.listTarget;
+        dropzone.addClassName('droparea');
+        dropzone.addEventListener("dragover", function(event) {
+            event.preventDefault();
+        }, true);
+        dropzone.addEventListener("dragenter", function(){
+            dropzone.addClassName("dropareaHover");
+        }, true);
+        dropzone.addEventListener("dragleave", function(){
+            dropzone.removeClassName("dropareaHover");
+        }, true);
+
+        dropzone.addEventListener("drop", function(event) {
+            event.preventDefault();
+            var items = event.dataTransfer.items || [];
+            var files = event.dataTransfer.files;
+            this.handleDropEventResults(items, files);
+        }.bind(this) , true);
+
+
+        if(this.mainForm.down('#uploadFilesListContainer')) {
             this.mainForm.down('#uploadFilesListContainer').setAttribute("rowspan", "1");
         }
         if(this.mainForm.down('#optClosButtonsContainer')){
             var totalDiv = new Element('div', {id:'total_files_list'});
             this.mainForm.down('#optClosButtonsContainer').insert({after:new Element('td', {style:'vertical-align:bottom'}).update(totalDiv)});
             totalDiv.insert('<img src="'+ajxpResourcesFolder+'/images/actions/22/trashcan_empty.png" class="fakeUploadButton fakeOptionButton" id="clear_list_button"\
-			width="22" height="22" style="float:right;margin-top:3px;padding:4px;width:22px;" title="'+MessageHash[216]+'"/>\
-			<span id="totalStrings">'+MessageHash[258]+' : 0 '+MessageHash[259]+' : 0Kb</span>\
-			<div style="padding-top:3px;">\
-			<div id="pgBar_total" style="width:154px; height: 4px;border: 1px solid #ccc;float:left;margin-top: 6px;"></div>\
-			<span style="float:left;margin-left:10px;" id="uploadedString">'+MessageHash[256]+' : 0%</span>\
-			</div>');
+            width="22" height="22" style="float:right;margin-top:3px;padding:4px;width:22px;" title="'+MessageHash[216]+'"/>\
+            <span id="totalStrings">'+MessageHash[258]+' : 0 '+MessageHash[259]+' : 0Kb</span>\
+            <div style="padding-top:3px;">\
+            <div id="pgBar_total" style="width:154px; height: 4px;border: 1px solid #ccc;float:left;margin-top: 6px;"></div>\
+            <span style="float:left;margin-left:10px;" id="uploadedString">'+MessageHash[256]+' : 0%</span>\
+            </div>');
         }
-		var options = {
-			animate		: false,									// Animate the progress? - default: true
-			showText	: false,									// show text with percentage in next to the progressbar? - default : true
-			width		: 154,										// Width of the progressbar - don't forget to adjust your image too!!!
-			boxImage	: ajxpResourcesFolder+'/images/progress_box.gif',			// boxImage : image around the progress bar
-			barImage	: ajxpResourcesFolder+'/images/progress_bar.gif',	// Image to use in the progressbar. Can be an array of images too.
-			height		: 4										// Height of the progressbar - don't forget to adjust your image too!!!
-		};
-		this.mainForm.down('#clear_list_button').observe("click", function(e){
-			ajaxplorer.actionBar.multi_selector.clearList();
-			ajaxplorer.actionBar.multi_selector.updateTotalData();			
-		});
-		this.optionPane = this.createOptionsPane();
-		this.optionPane.loadData();
+        var options = {
+            animate		: false,									// Animate the progress? - default: true
+            showText	: false,									// show text with percentage in next to the progressbar? - default : true
+            width		: 154,										// Width of the progressbar - don't forget to adjust your image too!!!
+            boxImage	: ajxpResourcesFolder+'/images/progress_box.gif',			// boxImage : image around the progress bar
+            barImage	: ajxpResourcesFolder+'/images/progress_bar.gif',	// Image to use in the progressbar. Can be an array of images too.
+            height		: 4										// Height of the progressbar - don't forget to adjust your image too!!!
+        };
+        this.mainForm.down('#clear_list_button').observe("click", function(e){
+            ajaxplorer.actionBar.multi_selector.clearList();
+            ajaxplorer.actionBar.multi_selector.updateTotalData();
+        });
+        this.optionPane = this.createOptionsPane();
+        this.optionPane.loadData();
 
         if(this.mainForm.down('#phBar_total')){
             this.totalProgressBar = new JS_BRAMUS.jsProgressBar($('pgBar_total'), 0, options);
@@ -173,19 +279,8 @@ Class.create("XHRUploader", {
         this.totalStrings = $('totalStrings');
         this.uploadedString = $('uploadedString');
 
-		if(window.UploaderDroppedFiles){
-			var files = window.UploaderDroppedFiles;
-			for(var i=0;i<files.length;i++){
-				this.addListRow(files[i]);
-			}
-			if(this.optionPane.autoSendCheck.checked){
-				this.submit();
-			}
-			window.UploaderDroppedFiles = null;
-		}
-		
-	},
-	
+    },
+
 	createOptionsPane : function(){
         var optionPane = this.mainForm.down("#uploader_options_pane");
         var totalPane = this.mainForm.down('#total_files_list');
@@ -209,11 +304,11 @@ Class.create("XHRUploader", {
 		optionPane.showPane = function(){
 			totalPane.hide();optionPane.show();
 			modal.refreshDialogAppearance();
-		}
+		};
 		optionPane.hidePane = function(){
 			totalPane.show();optionPane.hide();
 			modal.refreshDialogAppearance();
-		}
+		};
 		optionPane.autoSendCheck.observe("click", function(e){				
 			var autoSendOpt = optionPane.autoSendCheck.checked;
 			if(ajaxplorer.user){
@@ -251,6 +346,7 @@ Class.create("XHRUploader", {
 			return value;
 		};
 		optionPane.loadData = function(){
+            var value;
             var message = '<b>' + MessageHash[281] + '</b> ';
             message += '&nbsp;&nbsp;'+ MessageHash[282] + ':' + roundSize(this.maxUploadSize, '');
             message += '&nbsp;&nbsp;'+ MessageHash[284] + ':' + this.max;
@@ -262,7 +358,7 @@ Class.create("XHRUploader", {
             }else if(this._globalConfigs.get('DEFAULT_AUTO_START')){
                 autoSendValue = this._globalConfigs.get('DEFAULT_AUTO_START');
 			}else{
-				var value = getAjxpCookie('upload_auto_send');
+				value = getAjxpCookie('upload_auto_send');
 				autoSendValue = ((value && value == "true")?true:false);				
 			}
 			optionPane.autoSendCheck.checked = autoSendValue;
@@ -274,7 +370,7 @@ Class.create("XHRUploader", {
             }else if(this._globalConfigs.get('DEFAULT_AUTO_CLOSE')){
                 autoCloseValue = this._globalConfigs.get('DEFAULT_AUTO_CLOSE');
 			}else{
-				var value = getAjxpCookie('upload_auto_close');
+				value = getAjxpCookie('upload_auto_close');
 				autoCloseValue = ((value && value == "true")?true:false);				
 			}
 			optionPane.autoCloseCheck.checked = autoCloseValue;
@@ -285,7 +381,7 @@ Class.create("XHRUploader", {
             }else if(this._globalConfigs.get('DEFAULT_EXISTING')){
                 existingValue = this._globalConfigs.get('DEFAULT_EXISTING');
 			}else if(getAjxpCookie('upload_existing')){
-				var value = getAjxpCookie('upload_existing');				
+				value = getAjxpCookie('upload_existing');
 			}
 			optionPane.down('#uploader_existing_' + existingValue).checked = true;
 			
@@ -328,18 +424,40 @@ Class.create("XHRUploader", {
         if(this.sendButton) this.sendButton.addClassName("disabled");
 	},
 
+    /*
+    pathToIndent: function( item,  itemPath ){
+        var length = itemPath.split("/").length - 1;
+        if(!length) return;
+        for(var i=0;i<length;i++){
+            item.insert({top: '<span class="item-indent">&nbsp;</span>'});
+        }
+    },
+
+    addFolderRow: function ( folderPath ){
+
+        var row = new Element('div').update('<span class="icon-folder-close"></span> ' + getBaseName(folderPath));
+        this.pathToIndent(row, folderPath);
+        row.FOLDER = true;
+        this.listTarget.insert(row);
+
+    },
+    */
+
 	/**
 	 * Add a new row to the list of files
 	 */
-	addListRow : function( file ){
+	addListRow : function( file , relativePath){
 
         this.listTarget.removeClassName('dropareaHover');
 
+        if(getBaseName(file.name)==".DS_Store"){
+            return;
+        }
 		if(file.size==0 && file.type == ""){
 			// FOLDER!
 			alert(MessageHash[336]);
 			return;
-		}else if(Prototype.Browser.WebKit && !getBaseName(file.name).indexOf(".")){
+		}else if(!file.size && Prototype.Browser.WebKit && getBaseName(file.name).indexOf(".") !== 0){
 			var res = confirm(MessageHash[395]);
 			if(!res){
 				return;
@@ -397,6 +515,11 @@ Class.create("XHRUploader", {
 		// Add button & text
 		item.insert( delButton );
 		item.insert( label );
+        if(relativePath){
+            item.relativePath = relativePath;
+            item.insert( '<span class="item_relative_path">'+getRepName(relativePath)+'</span>' );
+        }
+
 		// Add it to the list
 		this.listTarget.insert( item );
 		
@@ -451,6 +574,7 @@ Class.create("XHRUploader", {
 			}
 			this.percentValue = percentage;
 		}.bind(item);
+        var oThis = this;
 		item.updateStatus = function(status){
 			this.status = status;
             var messageIds = {
@@ -461,8 +585,11 @@ Class.create("XHRUploader", {
             };
             try{
                 status = window.MessageHash[messageIds[status]];
-            }catch(e){};
-			this.statusText.innerHTML = "["+status+"]";
+            }catch(e){}
+            if(oThis.currentBackgroundPanel){
+                oThis.currentBackgroundPanel.update(item.file.name + ' ['+status+']');
+            }
+            this.statusText.innerHTML = "["+status+"]";
 		}.bind(item);
 	},
 	
@@ -484,6 +611,7 @@ Class.create("XHRUploader", {
 			}
 			this.percentValue = percentage;
 		}.bind(item);
+        var oThis = this;
 		item.updateStatus = function(status){
 			this.status = status;
             var messageIds = {
@@ -494,13 +622,16 @@ Class.create("XHRUploader", {
             };
             try{
                 status = window.MessageHash[messageIds[status]];
-            }catch(e){};
+            }catch(e){}
 			this.statusText.innerHTML = "["+status+"]";
             this.statusText.removeClassName('new');
             this.statusText.removeClassName('loading');
             this.statusText.removeClassName('loaded');
             this.statusText.removeClassName('error');
             this.statusText.addClassName(this.status);
+            if(oThis.currentBackgroundPanel){
+                oThis.currentBackgroundPanel.update(item.file.name + ' ['+status+']');
+            }
 		}.bind(item);
 	},
 
@@ -528,7 +659,7 @@ Class.create("XHRUploader", {
             if(this.sendButton) this.sendButton.addClassName("disabled");
         }
 		if(size){
-			var percentage = Math.round(100*uploaded/size);
+			percentage = Math.round(100*uploaded/size);
 		}
         if(this.totalProgressBar){
             this.totalProgressBar.setPercentage(percentage, true);
@@ -544,14 +675,20 @@ Class.create("XHRUploader", {
 	
 	submitNext : function(){
 
-		if(item = this.getNextItem()){
+        var item;
+        if(item = this.getNextItem()){
             document.fire("ajaxplorer:longtask_starting");
 			this.sendFileMultipart(item);
 		}else{
             if(this.hasLoadingItem()) return;
 			//ajaxplorer.fireContextRefresh();
-			if(this.optionPane.autoCloseCheck.checked){
-				hideLightBox(true);
+			if(this.optionPane.autoCloseCheck.checked || this.currentBackgroundPanel){
+                window.UploaderInstanceRunning = false;
+                if(this.currentBackgroundPanel){
+                    this.currentBackgroundPanel.hide();
+                }else{
+                    hideLightBox(true);
+                }
 			}
             document.fire("ajaxplorer:longtask_finished");
 		}
@@ -576,14 +713,17 @@ Class.create("XHRUploader", {
         return false;
     },
 	
-	initializeXHR : function(item, queryStringParam){
+	initializeXHR : function(item, queryStringParam, forceDir){
 
-		var xhr = new XMLHttpRequest(); 	  
-		var uri = ajxpBootstrap.parameters.get('ajxpServerAccess')+"&get_action=upload&xhr_uploader=true&dir="+encodeURIComponent(this.crtContext.getContextNode().getPath());
+        var currentDir = this.contextNode.getPath();
+        if(forceDir) currentDir = forceDir;
+
+		var xhr = new XMLHttpRequest();
+		var uri = ajxpBootstrap.parameters.get('ajxpServerAccess')+"&get_action=upload&xhr_uploader=true&dir="+encodeURIComponent(currentDir);
 		if(queryStringParam){
 			uri += '&' + queryStringParam;
 		}
-		
+
 		var upload = xhr.upload;
 		upload.addEventListener("progress", function(e){
 			if (!e.lengthComputable) return;
@@ -611,7 +751,8 @@ Class.create("XHRUploader", {
 			item.updateStatus('error');
         };		
 
-		xhr.open("POST", uri, true);   
+		xhr.open("POST", uri, true);
+        try {if(Prototype.Browser.IE10) xhr.responseType =  'msxml-document'; } catch(e){}
         return xhr;
 		
 	},
@@ -619,35 +760,64 @@ Class.create("XHRUploader", {
 	sendFileMultipart : function(item){
     	var auto_rename = false;
 
-        var newNode = new AjxpNode(this.crtContext.getContextNode().getPath()+"/"+getBaseName(item.file.name));
+        var currentDir = this.contextNode.getPath();
+        if(item.relativePath){
+            if(!this.createdDirs) this.createdDirs = $A();
+            // Create the folder directly!
+            var createConn = new Connexion();
+            var dirPath = getRepName(item.relativePath);
+            var parts = dirPath.split("/");
+            var localDir = "";
+            for(var i=0;i<parts.length;i++){
+                localDir += "/" + parts[i];
+
+                var fullPath = currentDir+localDir;
+                if(this.createdDirs.indexOf(localDir) == -1){
+                    item.down('span.item_relative_path').update('Creating '+localDir + '...');
+                    createConn.setParameters(new Hash({
+                        get_action: 'mkdir',
+                        dir: getRepName(fullPath),
+                        ignore_exists:true,
+                        dirname:getBaseName(fullPath)
+                    }));
+                    createConn.sendSync();
+                    item.down('span.item_relative_path').update(localDir);
+                    this.createdDirs.push(localDir);
+                }
+            }
+            currentDir = fullPath;
+        }
+
+        var parentNode = new AjxpNode(currentDir);
+        var newNode = new AjxpNode(currentDir+"/"+getBaseName(item.file.name));
         if(item.file.size){
             newNode.getMetadata().set("filesize", item.file.size);
         }
         try{
-            this.crtContext.applyCheckHook(newNode);
+            this.dataModel.applyCheckHook(newNode);
         }catch(e){
             item.updateStatus('error');
             this.submitNext();
             return;
         }
 
-        if(this.crtContext.fileNameExists(item.file.name))
-		{
-			var behaviour = this.optionPane.getExistingBehaviour();
-			if(behaviour == 'rename'){
-				auto_rename = true;
-			}else if(behaviour == 'alert'){
+		var behaviour = this.optionPane.getExistingBehaviour();
+		if(behaviour == 'rename'){
+			auto_rename = true;
+		}else if(behaviour == 'alert'){
+			if(this.dataModel.fileNameExists(item.file.name, false, parentNode))
+			{
 				if(!confirm(MessageHash[124])){
 					item.remove();
-                    item.submitNext();
+					item.submitNext();
 					return;
 				}
-			}else{
-				// 'overwrite' : do nothing!
 			}
-		}		
+		}else{
+			// 'overwrite' : do nothing!
+		}
 		
-		var xhr = this.initializeXHR(item, (auto_rename?"auto_rename=true":""));
+		var xhr = this.initializeXHR(item, (auto_rename?"auto_rename=true":""), currentDir);
 		var file = item.file;
         item.updateProgress(null, 0);
 		item.updateStatus('loading');		
@@ -668,7 +838,7 @@ Class.create("XHRUploader", {
 	
 	sendFileUsingFormData : function(xhr, file){
         var formData = new FormData();
-        formData.append("userfile_0", file);
+        formData.append("userfile_0", file, file.name);
         xhr.send(formData);
 	},	
 
@@ -690,7 +860,7 @@ Class.create("XHRUploader", {
 		item.updateStatus('loading');
 		
     	var auto_rename = false;
-		if(this.crtContext.fileNameExists(item.file.name))
+		if(this.dataModel.fileNameExists(item.file.name))
 		{
 			var behaviour = this.optionPane.getExistingBehaviour();
 			if(behaviour == 'rename'){
@@ -705,7 +875,7 @@ Class.create("XHRUploader", {
 			}
 		}
 
-        var xhr = new XMLHttpRequest;
+        var xhr = new XMLHttpRequest();
 		var upload = xhr.upload;
 		upload.addEventListener("progress", function(e){
 			if (e.lengthComputable) {  
@@ -739,12 +909,13 @@ Class.create("XHRUploader", {
         	item.statusText.update('[error]');        	
         };
         
-        var url = ajxpBootstrap.parameters.get('ajxpServerAccess')+"&get_action=upload&xhr_uploader=true&input_stream=true&dir="+encodeURIComponent(this.crtContext.getContextNode().getPath());
+        var url = ajxpBootstrap.parameters.get('ajxpServerAccess')+"&get_action=upload&xhr_uploader=true&input_stream=true&dir="+encodeURIComponent(this.contextNode.getPath());
         if(auto_rename){
         	url += '&auto_rename=true';
         }
         
         xhr.open("post", url, true);
+        try {if(Prototype.Browser.IE10) xhr.responseType =  'msxml-document'; } catch(e){}
         xhr.setRequestHeader("If-Modified-Since", "Mon, 26 Jul 1997 05:00:00 GMT");
         xhr.setRequestHeader("Cache-Control", "no-cache");
         xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
@@ -762,14 +933,12 @@ Class.create("XHRUploader", {
 		function(item){
 			
 			var file = item.file;
-			var fileName = file.name;  
-			var fileSize = file.size;  
-			
+
 			this.cursor = 0;
 			this.fIndex = 0;
 			this.chunkLength = 10 * 1024 * 1024;		
 			this.item = item;		
-			this.fileName = fileName;
+			this.fileName = file.name;
 			this.fileSize  = file.size;
 			
 			this.sendNextBlob();
@@ -781,7 +950,6 @@ Class.create("XHRUploader", {
 			
 			var file = item.file;
 			var fileName = file.name;  
-			var fileSize = file.size;  
 			var reader = new FileReader();
 			this.item = item;
 			
@@ -837,7 +1005,7 @@ Class.create("XHRUploader", {
 			this.fIndex ++;
 			reader.onloadend = function(evt){
 				if (evt.target.readyState == FileReader.DONE) {
-					item.statusText.update('[building query]');
+					this.statusText.update('[building query]');
 					this.fileData = evt.target.result;
 					this.xhrSendAsBinary(
 							filename, 
@@ -868,7 +1036,7 @@ Class.create("XHRUploader", {
 		conn.setParameters({
 			"get_action" : "upload_chunks_unify",
 			"file_name" : fileName,
-			"dir" : this.crtContext.getContextNode().getPath()
+			"dir" : this.contextNode.getPath()
 		});
 		for(var i=0;i<lastIndex;i++){
 			conn.addParameter("chunk_"+i, fileName+"_part_"+i);
@@ -890,9 +1058,8 @@ if(!XMLHttpRequest.prototype.sendAsBinary){
 	       for (var i in datastr) {
 	               if (datastr.hasOwnProperty(i)) {
 	                       var chr = datastr[i];
-	                       var charcode = chr.charCodeAt(0)
-	                       var lowbyte = (charcode & 0xff)
-	                       ui8a[0] = lowbyte;
+	                       var charcode = chr.charCodeAt(0);
+	                       ui8a[0] = (charcode & 0xff);
 	                       bb.append(data);
 	               }
 	       }

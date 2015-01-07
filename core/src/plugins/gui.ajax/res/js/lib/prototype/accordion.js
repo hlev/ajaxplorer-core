@@ -6,8 +6,7 @@
 */
 
 
-var accordion = Class.create();
-accordion.prototype = {
+Class.create("accordion", {
 
 	//
 	//  Setup the Variables
@@ -23,8 +22,7 @@ accordion.prototype = {
 	//
 	initialize: function(container, options) {
 	  if (!$(container)) {
-	    throw(container+" doesn't exist!");
-	    return false;
+	        throw(container+" doesn't exist!");
 	  }
         this.container = $(container);
 	  
@@ -51,11 +49,11 @@ accordion.prototype = {
 			if (this.options.onEvent == 'click') {
 			  accordion.onclick = function() {return false;};
 			}
-			
+			var options;
 			if (this.options.direction == 'horizontal') {
-				var options = $H({width: '0px'});
+				options = $H({width: '0px'});
 			} else {
-				var options = $H({height: '0px'});			
+				options = $H({height: '0px'});
 			}
 			options = options.merge({display: 'none'});
 			
@@ -78,7 +76,7 @@ accordion.prototype = {
 	//
 	activate : function(accordion) {
 		if (this.animating) {
-			return false;
+			return;
 		}
 		
 		this.effects = [];
@@ -128,15 +126,16 @@ accordion.prototype = {
 				this.showAccordion.setStyle({
                     height: 'auto',
 					display: 'none'
-				});				
-				this.showAccordion = null;
-				this.animating = false;
+				});
+                this.showAccordion.previous(0).removeClassName(this.options.classNames.toggleActive);
+                this.showAccordion = null;
+                this.animating = false;
+                this.notify("animation-finished")
 			}.bind(this)
 		});    
     options = options.merge(this.scaling);
 
-    this.showAccordion.previous(0).removeClassName(this.options.classNames.toggleActive);
-    
+
 		new Effect.Scale(this.showAccordion, 0, options._object);
 	},
 
@@ -161,7 +160,7 @@ accordion.prototype = {
 		);
 
 		if (this.showAccordion) {
-			this.showAccordion.previous(0).removeClassName(this.options.classNames.toggleActive);
+			//this.showAccordion.previous(0).removeClassName(this.options.classNames.toggleActive);
 			
 			options = $H({
 				sync: true,
@@ -183,20 +182,22 @@ accordion.prototype = {
 			},
 			beforeStart: function() {
 				this.animating = true;
+                this.notify("animation-started")
 			}.bind(this),
 			afterFinish: function() {
 				if (this.showAccordion) {
 					this.showAccordion.setStyle({
 						display: 'none'
-					});				
+					});
+                    this.showAccordion.previous(0).removeClassName(this.options.classNames.toggleActive);
 				}
 				$(this.currentAccordion).setStyle({
 				  height: 'auto'
 				});
 				this.showAccordion = this.currentAccordion;
 				this.animating = false;
+                this.notify("animation-finished")
 			}.bind(this)
 		});
 	}
-};
-	
+});

@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 Class.create("ExifCellRenderer", {	
 	initialize: function(){
@@ -27,7 +27,9 @@ Class.create("ExifCellRenderer", {
 		if(latiCell && longiCell && latiCell.innerHTML && longiCell.innerHTML){
 			var object = new ExifCellRenderer();
 			object.transformGeoCells(latiCell, longiCell);
-		}		
+		}else if(latiCell && longiCell){
+            latiCell.up('div.infoPanelTable').up('div').hide();
+        }
 	},
 	
 	transformGeoCells : function(latiCell, longiCell){
@@ -37,26 +39,57 @@ Class.create("ExifCellRenderer", {
 		split = longiCell.innerHTML.split('--');
 		longiCell.update(split[0]);
 		longiCell.setAttribute("longiDegree", split[1]);
+        var decorator = '<img src="plugins/meta.exif/world.png" style="margin-bottom: 0;">';
+        if(ajaxplorer.currentThemeUsesIconFonts){
+            decorator = '<span class="icon-map-marker" style="font-size: 2em;"></span>';
+        }
 		var button = new Element('div', {
 			className:'fakeUploadButton',
-			style:'padding-top:3px;width:50px;margin-bottom:0px;padding-bottom:3px;'
-		}).update('<img src="plugins/meta.exif/world.png"><br>'+MessageHash['meta.exif.2']);
-		var buttonCell = new Element('td', {
+			style:'padding-top:6px;width:50px;margin-bottom:0px;padding-bottom:3px;text-align:center; font-size: 11px;'
+		}).update( decorator + '<br>'+ MessageHash['meta.exif.2']);
+		var buttonCell = new Element('div', {
 			rowspan:2,
 			align:'center',
 			valign:'center',
 			style:'padding:2px;width:60px;',
             className:'ip_geo_cell'
 		}).update(button);
-		latiCell.insert({after:buttonCell});		
+		latiCell.insert({after:buttonCell});
+        latiCell.up('div').setStyle({position: 'relative'});
 		// Set all other cells colspan to 2.
 		latiCell.up().nextSiblings().each(function(tr){
-			tr.down('td.infoPanelValue').setAttribute('colspan', 2);
+			tr.down('div.infoPanelValue').setAttribute('colspan', 2);
 		});
 		longiCell.setAttribute("colspan", "1");
-		button.observe("click", function(){
-			this.openLocator(latiCell.getAttribute('latiDegree'), longiCell.getAttribute("longiDegree"));
-		}.bind(this) );		
+        var clicker = function(){
+            this.openLocator(latiCell.getAttribute('latiDegree'), longiCell.getAttribute("longiDegree"));
+        }.bind(this);
+		button.observe("click", clicker);
+        try{
+            var userMetaButton = latiCell.up('div.infoPanelTable').previous('div.infoPanelGroup').down('span.user_meta_change');
+            userMetaButton.observe("click", clicker);
+        }catch(e){
+
+        }
+
+        var editors = ajaxplorer.findEditorsForMime("ol_layer");
+        var editorData;
+        if(editors.length){
+            editorData = editors[0];
+        }
+        if(editorData){
+            var ajxpNode = ajaxplorer.getUserSelection().getUniqueNode();
+            var metadata = ajxpNode.getMetadata();
+            ajxpNode.setMetadata(metadata.merge({
+                'ol_layers' : [{type:'Google', google_type:'hybrid'}, {type:'Google', google_type:'streets'}, {type:'OSM'}],
+                'ol_center' : {latitude:parseFloat(latiCell.getAttribute('latiDegree')),longitude:parseFloat(longiCell.getAttribute("longiDegree"))}
+            }));
+            var  id = "small_map_" + Math.random();
+            latiCell.up('div.infoPanelTable').insert({top:'<div id="'+id+'" style="height: 250px;"></div>'});
+            ajaxplorer.loadEditorResources(editorData.resourcesManager);
+            OLViewer.prototype.createOLMap(ajxpNode, id, false, false);
+        }
+
 	},
 	
 	openLocator : function(latitude, longitude){
@@ -64,6 +97,7 @@ Class.create("ExifCellRenderer", {
 		// Call openLayer editor!
 		// TEST : WestHausen : longitude=10.2;latitude = 48.9;
 		var editors = ajaxplorer.findEditorsForMime("ol_layer");
+        var editorData;
 		if(editors.length){
 			editorData = editors[0];							
 		}					
@@ -75,8 +109,7 @@ Class.create("ExifCellRenderer", {
 				'ol_layers' : [{type:'Google', google_type:'hybrid'}, {type:'Google', google_type:'streets'}, {type:'OSM'}],
 				'ol_center' : {latitude:parseFloat(latitude),longitude:parseFloat(longitude)}
 			}));
-			ajaxplorer.loadEditorResources(editorData.resourcesManager);
-			modal.openEditorDialog(editorData);
+            ajaxplorer.openCurrentSelectionInEditor(editorData);
 		}
 		
 	}

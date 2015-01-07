@@ -1,25 +1,25 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 /**
- * AjaXplorer Encapsulation of the Sortable Table
+ * Pydio Encapsulation of the Sortable Table
  */
 Class.create("AjxpSortable", SortableTable, {
 
@@ -51,7 +51,7 @@ Class.create("AjxpSortable", SortableTable, {
 		this.columnsDefs = columnsDefs;
 		var found = -1;
 		for(var i=0;i<columnsDefs.length;i++){
-			if(columnsDefs[i]['field_name'] == crtOrderName){
+			if(columnsDefs[i]['attributeName'] == crtOrderName){
 				found = i;
 				break;
 			}
@@ -78,7 +78,7 @@ Class.create("AjxpSortable", SortableTable, {
 				this.descending = !this.descending;
 			}
 			var column = this.columnsDefs[cellColumn];
-			params.set('order_column', column['field_name'] || cellColumn);
+			params.set('order_column', column['attributeName'] || cellColumn);
 			params.set('order_direction', (this.descending?'desc':'asc'));
 			this.paginationLoaderFunc(params);
 		}else{
@@ -89,7 +89,7 @@ Class.create("AjxpSortable", SortableTable, {
 	/**
 	 * Function for handling Bytes / Binary
 	 * @param str String
-	 * @returns String
+	 * @returns Number
 	 */
 	replace8a8: function(str) {
 		str = str.toUpperCase();
@@ -97,7 +97,8 @@ Class.create("AjxpSortable", SortableTable, {
 		var ar = str.replace(
 			/(([0-9]*\.)?[0-9]+([eE][-+]?[0-9]+)?)(.*)/,
 		 "$1"+splitstr+"$4").split(splitstr);
-		var num = Number(ar[0]).valueOf();
+        var num;
+        num = Number(ar[0]).valueOf();
 		if(ar[1]){
 			var ml = ar[1].replace(/\s*([KMGB])\s*/, "$1");
 		
@@ -146,7 +147,7 @@ Class.create("AjxpSortable", SortableTable, {
 	/**
 	 * Sorting function for dates
 	 * @param s String
-	 * @returns String
+	 * @returns Number
 	 */
 	replaceDate: function(s) {
 		var parts1 = s.split(" ");
@@ -184,12 +185,12 @@ Class.create("AjxpSortable", SortableTable, {
 		return s.toUpperCase();
 	},
 
-	/**
-	 * Sort dirs and files each on their side
-	 * @param oRow HTMLElement Row
-	 * @param nColumn Integer
-	 * @returns String
-	 */
+    /**
+     * Sort dirs and files each on their side
+     * @returns String
+     * @param oNode
+     * @param attName
+     */
 	splitDirsAndFilesNodes: function(oNode, attName) {
 		var s;
         if(attName == "ajxp_label") attName = "text";
@@ -205,25 +206,31 @@ Class.create("AjxpSortable", SortableTable, {
 	 * If the cell has a sorter_value attribute, use this as sorting
 	 * @param oRow HTMLElement Row
 	 * @param nColumn Integer
-	 * @returns String
+	 * @returns Integer|String
 	 */
-	cellSorterValue : function(oRow, nColumn){
+	cellSorterValue : function(oRow, nColumn, attName){
+        if(attName && (oRow.getAttribute('data-'+attName+'-sorter_value') || oRow.down('[data-'+attName+'-sorter_value]') )){
+            if(oRow.down('[data-'+attName+'-sorter_value]')) return parseInt( oRow.down('[data-'+attName+'-sorter_value]').getAttribute('data-'+attName+'-sorter_value') );
+            else return oRow.getAttribute('data-'+attName+'-sorter_value');
+        }
 		var tds = oRow.select('td');
 		if(tds[nColumn] && tds[nColumn].getAttribute('data-sorter_value')){
 			return parseInt(tds[nColumn].getAttribute('data-sorter_value'));
 		}
+        return 0;
 	},
-	
+
 	/**
 	 * Sort by ajxp_modiftime
 	 * @param oRow HTMLElement Row
 	 * @param nColumn Integer
-	 * @returns String
+	 * @returns Integer
 	 */
 	sortTimes : function(oRow, nColumn){
         if(oRow.ajxpNode && oRow.ajxpNode.getMetadata().get("ajxp_modiftime")){
-            return oRow.ajxpNode.getMetadata().get("ajxp_modiftime");
+            return parseInt(oRow.ajxpNode.getMetadata().get("ajxp_modiftime"));
         }
+        return 0;
 	}
 
 });

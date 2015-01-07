@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 Class.create("SQLEditor", {
 
@@ -166,11 +166,11 @@ Class.create("SQLEditor", {
 	displayReplicationChooser : function(){
 		var chooser = $('replication_chooser').cloneNode(true).setStyle({display:'block'});
 		this.oForm.insert(chooser);
-		var button = chooser.select('input[id="toNext"]')[0];
+		var button = chooser.down('input[id="toNext"]');
 		button.observe('click', function(e){
 			Event.stop(e);
-			this.newTableName = chooser.select('input[id="table_name"]')[0].value;
-			var fieldsNumber = parseInt(chooser.select('input[id="fields_number"]')[0].value);
+			this.newTableName = chooser.down('input[id="table_name"]').getValue();
+			var fieldsNumber = parseInt(chooser.down('input[id="fields_number"]').getValue());
 			if(this.newTableName && fieldsNumber){
 				chooser.remove();
 				this.displayTableEditorForm(fieldsNumber);
@@ -178,7 +178,7 @@ Class.create("SQLEditor", {
 				alert('Missing parameters!');
 			}
 		}.bind(this));
-		cancelButton = chooser.select('input[id="can"]')[0];
+		var cancelButton = chooser.down('input[id="can"]');
 		cancelButton.observe('click', function(e){
 			hideLightBox();
 			modal.close();
@@ -196,7 +196,7 @@ Class.create("SQLEditor", {
 			});
 			//addTable.select('td[edit="false"]').invoke('remove');
 			addTable.select('td[new="false"]')[0].setStyle({width:'40px'});
-			addRow = addTable.select('tbody tr')[0];
+			var addRow = addTable.select('tbody tr')[0];
 			var addButton = new Element('input', {type:'button', value:'Add', className:'dialogButton'});
 			var submitDiv = new Element('div', {className:'dialogButtons'}).insert(addButton);
 			var submitRow = new Element('tr').insert(new Element('td', {colspan:"9"}).insert(submitDiv));
@@ -230,9 +230,10 @@ Class.create("SQLEditor", {
 				style:'cursor:pointer;'
 			});
 			activator.insert({before:deleteCol});
+            var row;
 			templateTable.observe('click', function(e){
 				if(e.findElement('img') && e.findElement('img').hasClassName('enableRow')){
-					var row = e.findElement('tr');
+					row = e.findElement('tr');
 					if(row.getAttribute('enabled') && row.getAttribute('enabled') == "true"){
 						row.select('input', 'textarea', 'select').invoke('disable');
 						row.setAttribute('enabled', 'false');
@@ -244,12 +245,11 @@ Class.create("SQLEditor", {
 					}
 					Event.stop(e);
 				}else if(e.findElement('img') && e.findElement('img').hasClassName('deleteRow')){
-					var row = e.findElement('tr');
+					row = e.findElement('tr');
 					var origName = '';
 					row.select('input').each(function(input){
 						if(input.name.search('field_origname') > -1){
 							origName = input.value;
-							return;
 						}
 					});
 					if(origName != ''){
@@ -270,7 +270,7 @@ Class.create("SQLEditor", {
 			this.oForm.insert(this.createFieldSet('Step 2: Edit columns for table \"'+this.newTableName+'"', templateTable));
 		}
 		var fManager = new FormManager();
-		fManager.replicateRow(templateRow, numberReplicates, this.oForm);
+		fManager.replicateRow(templateRow, numberReplicates - 1 , this.oForm);
 		if(fields && values){
 			fManager.fetchMultipleValueToForm(this.oForm, fields, values);
 		}
@@ -322,12 +322,10 @@ Class.create("SQLEditor", {
 	},
 	
 	createFieldSet:function(legend, content){
-		var fSet = new Element('fieldset').insert(new Element('legend').update(legend)).insert(content);
-		return fSet;		
+        return new Element('fieldset').insert(new Element('legend').update(legend)).insert(content);
 	},
 	
 	parseXml : function(transport){
-		//alert(transport.responseText);
 		this.changeModifiedStatus(false);
 		this.removeOnLoad();
 	},

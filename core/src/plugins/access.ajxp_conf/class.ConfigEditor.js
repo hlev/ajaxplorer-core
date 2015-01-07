@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 /**
@@ -41,11 +41,11 @@ Class.create("ConfigEditor",{
 		this.roleId = null;
 		this.userId = null;
 			
-		this.form.down('#rights_pane').remove();
-		this.form.down('#rights_legend').remove();
+//		this.form.down('#rights_pane').remove();
+//		this.form.down('#rights_legend').remove();
 		this.form.down('#roles_pane').select('.dialogLegend')[0].update(MessageHash['ajxp_conf.83']);
-		this.form.down('#roles_pane').select('span')[1].update(MessageHash['ajxp_conf.84']);
-		var url = window.ajxpServerAccessPath + '&get_action=batch_users_roles';
+//		this.form.down('#roles_pane').select('span')[1].update(MessageHash['ajxp_conf.84']);
+		var url = window.ajxpServerAccessPath + '&get_action=user_update_role';
 		this.selectionUrl = selection.updateFormOrUrl(null, url);
 		var connexion = new Connexion(this.selectionUrl);
 		connexion.onComplete = function(transport){			
@@ -95,7 +95,6 @@ Class.create("ConfigEditor",{
 			dragged.ajxp_dropped = true;
 			dropped.insert(dragged);
 			dragged.setStyle({top:0,left:0});
-			var action = "edit";
 			var sub_action;
 			if(dragged.hasClassName('user_role')){
 				dragged.removeClassName('user_role');
@@ -174,7 +173,7 @@ Class.create("ConfigEditor",{
 			ajaxplorer.displayMessage("ERROR", MessageHash['ajxp_conf.37']);
 			return false;
 		}
-		parameters = new Hash();
+		var parameters = new Hash();
 		parameters.set('new_user_login', login.value);
 		parameters.set('new_user_pwd', this.encodePassword(pass.value));
         var currentPath = ajaxplorer.getContextNode().getPath();
@@ -190,10 +189,9 @@ Class.create("ConfigEditor",{
             // success callback
             hideLightBox();
             var editorData = ajaxplorer.findEditorById("editor.ajxp_role");
-            ajaxplorer.loadEditorResources(editorData.resourcesManager);
             var node = new AjxpNode(currentPath + "/"+newUserName, true);
             node.getMetadata().set("ajxp_mime", "user");
-            modal.openEditorDialog(editorData, node);
+            ajaxplorer.openCurrentSelectionInEditor(editorData, node);
         }.bind(this), function(responseXML){
             // error callback;
         });
@@ -206,7 +204,7 @@ Class.create("ConfigEditor",{
 			this.displayMessage("ERROR", MessageHash['ajxp_conf.40']);
 			return;
 		}
-		parameters = new Hash();
+		var parameters = new Hash();
 		parameters.set('user_id', this.userId);
 		this.submitForm("edit_user", 'delete_user', parameters, null);
 		chck.checked = false;
@@ -235,8 +233,7 @@ Class.create("ConfigEditor",{
 		parameters.set('new_pwd', pass.value);
 		this.submitForm("edit_user", 'create_user', parameters, null);
 		login.value = pass.value = passConf.value = '';
-		return;
-		
+
 	},
 
     encodePassword : function(password){
@@ -295,8 +292,8 @@ Class.create("ConfigEditor",{
 				driverDef.set('label', driverLabel);
 				driverDef.set('description', XPathGetSingleNodeText(driver, "@description"));
 				driverDef.set('name', driverName);
-				var driverParamsArray = new Array();
-				for(j=0;j<driverParams.length;j++){
+				var driverParamsArray = $A();
+				for(var j=0;j<driverParams.length;j++){
 					var paramNode = driverParams[j];
 					if(this.currentCreateRepoType == "template" && paramNode.getAttribute('no_templates') == 'true'){
 						continue;
@@ -370,12 +367,12 @@ Class.create("ConfigEditor",{
 			this.createDriverForm(dName, (this.currentCreateRepoType == "template"?true:false) );
 		}
 		if(dName != "0"){
-			var height = 130 + this.driverForm.getHeight() + (Prototype.Browser.IE?15:0);
+			height = 130 + this.driverForm.getHeight() + (Prototype.Browser.IE?15:0);
             var addscroll = false;
 			if(height > 425) {
                 height=425;
                 addscroll = true;
-            };
+            }
 		}
 		new Effect.Morph(this.driverForm.up('div'),{
 			style:'height:'+height + 'px' + (addscroll?'overflow-x:scroll':'overflow-x:auto;'),
@@ -445,8 +442,11 @@ Class.create("ConfigEditor",{
                 var editors = ajaxplorer.findEditorsForMime("repository");
                 if(editors.length && editors[0].openable){
                     var editorData = editors[0];
-                    ajaxplorer.loadEditorResources(editorData.resourcesManager);
-                    modal.openEditorDialog(editorData, newRepoId);
+                    var currentPath = ajaxplorer.getContextNode().getPath();
+                    var node = new AjxpNode(currentPath+"/"+newRepoId, true);
+                    node.getMetadata().set("text", this.newRepoLabelInput.getValue());
+                    ajaxplorer.openCurrentSelectionInEditor(editorData, node);
+                    hideLightBox();
                 }
             }
 		}.bind(this), function(){});
@@ -533,7 +533,7 @@ Class.create("ConfigEditor",{
 	
 	
 	parseXmlMessage: function(xmlResponse){
-		if(xmlResponse == null || xmlResponse.documentElement == null) return;
+		if(xmlResponse == null || xmlResponse.documentElement == null) return false;
 		var childs = xmlResponse.documentElement.childNodes;	
 		var repList = false;
 
@@ -541,7 +541,6 @@ Class.create("ConfigEditor",{
 		{
             if(childs[i].nodeName == "update_checkboxes")
 			{
-				var userId = childs[i].getAttribute('user_id');
 				var repositoryId = childs[i].getAttribute('repository_id');
 				var read = childs[i].getAttribute('read');
 				var write = childs[i].getAttribute('write');

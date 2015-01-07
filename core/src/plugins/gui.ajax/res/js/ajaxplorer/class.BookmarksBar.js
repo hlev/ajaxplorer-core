@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 /**
@@ -47,11 +47,13 @@
 
         }
 		this.createMenu();
-		document.observe("ajaxplorer:registry_loaded", function(event){
-			this.parseXml(event.memo);
-		}.bind(this) );
+        this.regObserver = function(event){
+            this.parseXml(event.memo);
+        }.bind(this);
+        document.observe("ajaxplorer:registry_loaded", this.regObserver);
 		document.observeOnce("ajaxplorer:actions_loaded", function(){
 			var bmAction = ajaxplorer.actionBar.actions.get('bookmark');
+            if(!bmAction) return;
 			this.addBookmarkObject = {
 				name:bmAction.getKeyedText(),
 				alt:bmAction.options.title,
@@ -61,15 +63,22 @@
 				}.bind(this)
 			};		
 		}.bind(this));
-		document.observe("ajaxplorer:add_bookmark", function(){
-			var node = ajaxplorer.getUserSelection().getUniqueNode();
+        this.bmObserver = function(){
+            var node = ajaxplorer.getUserSelection().getUniqueNode();
             if(node.getMetadata().get('ajxp_bookmarked') && node.getMetadata().get('ajxp_bookmarked') == 'true'){
                 this.removeBookmark(node.getPath(), function(){ajaxplorer.fireNodeRefresh(node);});
             }else{
                 this.addBookmark(node.getPath(), node.getLabel(),function(){ajaxplorer.fireNodeRefresh(node);});
             }
-		}.bind(this) );
+        }.bind(this);
+		document.observe("ajaxplorer:add_bookmark", this.bmObserver );
 	},
+
+     destroy:function(){
+         document.stopObserving("ajaxplorer:add_bookmark", this.bmObserver);
+         document.stopObserving("ajaxplorer:registry_loaded", this.regObserver);
+         if(this.bmMenu) this.bmMenu.destroy();
+     },
 	/**
 	 * Parses the registry to find the bookmarks definition
 	 * @param registry XMLDocument
@@ -83,7 +92,7 @@
 				name:childNodes[i].getAttribute('title'),
 				alt:childNodes[i].getAttribute('path'),
 				image:ajxpResourcesFolder+'/images/mimes/16/folder.png',
-                icon_class:'icon-star-empty'
+                icon_class:'icon-bookmark-empty'
 			};
 			bookmark.callback = function(e){ajaxplorer.goTo(this.alt);}.bind(bookmark);
 			bookmark.moreActions = this.getContextActions(bookmark.alt, bookmark.name);
@@ -157,7 +166,7 @@
 		
 			
 			
-		return new Array(renameAction, removeAction);
+		return $A([renameAction, removeAction]);
 	},
 	
 	/**
@@ -178,11 +187,13 @@
 	 	}.bind(this);
 		modal.showDialogForm('Rename', 'rename_bookmark', onLoad, onComplete);
 	},
-	
-	/**
-	 * Reload the bookmarks via the registry loading
-	 * @param actionsParameters Hash
-	 */
+
+     /**
+      * Reload the bookmarks via the registry loading
+      * @param actionsParameters Hash
+      * @param silently
+      * @param onComplete
+      */
 	load: function(actionsParameters, silently, onComplete){
         if(!ajaxplorer || !ajaxplorer.user) return;
 		var connexion = new Connexion();
@@ -190,7 +201,10 @@
 		actionsParameters.set('get_action', 'get_bookmarks');
 		connexion.setParameters(actionsParameters);
         if(onComplete){
-            connexion.onComplete = onComplete;
+            connexion.onComplete = function(transport){
+                onComplete();
+                ajaxplorer.notify('server_message:tree/reload_bookmarks');
+            };
         }else{
             connexion.onComplete = function(transport){
                 document.observeOnce("ajaxplorer:registry_part_loaded", function(event){
@@ -202,16 +216,19 @@
                     this.bmMenu.refreshList();
                     if(!silently) this.bmMenu.show();
                 }
+                ajaxplorer.notify('server_message:tree/reload_bookmarks');
             }.bind(this);
         }
+
 		connexion.sendAsync();
 	},
-	
-	/**
-	 * Add a bookmark
-	 * @param path String
-	 * @param title String
-	 */
+
+     /**
+      * Add a bookmark
+      * @param path String
+      * @param title String
+      * @param onComplete
+      */
 	addBookmark: function(path,title, onComplete){
 		var parameters = new Hash();
 		parameters.set('bm_action', 'add_bookmark');
@@ -221,11 +238,12 @@
 		}
 		this.load(parameters, false, onComplete);
 	},
-	
-	/**
-	 * Remove a bookmark
-	 * @param path String
-	 */
+
+     /**
+      * Remove a bookmark
+      * @param path String
+      * @param onComplete
+      */
 	removeBookmark: function(path, onComplete){
 		var parameters = new Hash();
 		parameters.set('bm_action', 'delete_bookmark');

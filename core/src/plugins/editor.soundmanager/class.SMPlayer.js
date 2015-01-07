@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 window.SM2_DEFER = true;
 if(!$$("html")[0].hasClassName("no-canvas") && !window.soundManager && ajaxplorer.findEditorById("editor.soundmanager")){
@@ -28,7 +28,11 @@ if(!$$("html")[0].hasClassName("no-canvas") && !window.soundManager && ajaxplore
         if(ajaxplorer && ajaxplorer.user && ajaxplorer.user.getPreference("soundmanager.volume") !== undefined){
             soundManager.defaultOptions.volume = ajaxplorer.user.getPreference("soundmanager.volume");
         }
-        conn.loadLibrary('360-player/script/360player.js', function(){
+        var conn2 = new Connexion();
+        conn2._libUrl = (ajxpBootstrap.parameters.get('SERVER_PREFIX_URI')?ajxpBootstrap.parameters.get('SERVER_PREFIX_URI'):'')+'plugins/editor.soundmanager/sm/';
+        conn2.loadLibrary('360-player/script/360player.js', function(){
+
+            if(!window.threeSixtyPlayer) return;
 
             window.threeSixtyPlayer.config.scaleFont = (navigator.userAgent.match(/msie/i)?false:true);
             window.threeSixtyPlayer.config.showHMSTime = true;
@@ -121,9 +125,9 @@ function hookToFilesList(){
             resManager.load();
         }
         $A(fList.getItems()).each(function(row){
-            if(!row.ajxpNode || row.ajxpNode.getAjxpMime() != "mp3" || row.ajxpNode.getAjxpMime() != "wav") return;
+            if(!row.ajxpNode || (row.ajxpNode.getAjxpMime() != "mp3" && row.ajxpNode.getAjxpMime() != "wav")) return;
             addVolumeButton();
-            var url = ajxpBootstrap.parameters.get('ajxpServerAccess')+'&get_action=audio_proxy&file='+base64_encode(row.ajxpNode.getPath())+ '&fake=extension.'+ajxpNode.getAjxpMime();
+            var url = ajxpBootstrap.parameters.get('ajxpServerAccess')+'&get_action=audio_proxy&file='+encodeURIComponent(base64_encode(row.ajxpNode.getPath()))+ '&fake=extension.'+row.ajxpNode.getAjxpMime();
             var player = new Element("div", {className:"ui360 ui360-micro"}).update(new Element("a", {href:url}).update(""));
             row.down("span#ajxp_label").setStyle({backgroundImage:'none'}).insert({top:player});
             threeSixtyPlayer.config.items = [player];
@@ -165,7 +169,7 @@ function addVolumeButton(){
         null,
         false,
         false
-    )
+    );
     volumeButton.down("img").src = (ajxpBootstrap.parameters.get('SERVER_PREFIX_URI')?ajxpBootstrap.parameters.get('SERVER_PREFIX_URI'):'')+"plugins/editor.soundmanager/kmixdocked.png";
     locBar.bmButton.insert({before:volumeButton});
     new SliderInput(volumeButton, {
@@ -192,16 +196,61 @@ Class.create("SMPlayer", AbstractEditor, {
 
 	fullscreenMode: false,
 	
-	initialize: function($super, oFormObject){
+	initialize: function($super, oFormObject, options){
+        this.element = oFormObject;
+        this.editorOptions = options;
 	},
-		
+
+    open : function($super, ajxpNode){
+        this.currentRichPreview = this.getPreview(ajxpNode, true);
+        this.element.down(".smplayer_title").update(ajxpNode.getLabel());
+        this.element.down(".smplayer_preview_element").insert(this.currentRichPreview);
+        window.setTimeout(function(){
+            try{this.currentRichPreview.down('span.sm2-360btn').click();}catch(e){}
+        }.bind(this), 400);
+        modal.setCloseValidation(function(){
+            this.currentRichPreview.destroyElement();
+        }.bind(this));
+    },
+
+    /**
+   	 * Closes the editor
+   	 * @returns Boolean
+   	 */
+   	close : function($super){
+        this.currentRichPreview.destroyElement();
+   		return $super.close();
+   	},
+
+    getSharedPreviewTemplate: function(node){
+
+        var crtRoot = document.location.href.split("#").shift().split("?").shift();
+        var rgxtrim = new RegExp('\/+$');
+        crtRoot = crtRoot.replace(rgxtrim, '');
+
+        return new Template('<link rel="stylesheet" type="text/css" href="'+crtRoot+'/plugins/editor.soundmanager/sm/shared/mp3-player-button.css" />\n\
+&lt;script type="text/javascript" src="'+crtRoot+'/plugins/editor.soundmanager/sm/shared/soundmanager2.js"&gt;&lt;/script&gt;\n\
+&lt;script type="text/javascript" src="'+crtRoot+'/plugins/editor.soundmanager/sm/shared/mp3-player-button.js"&gt;&lt;/script&gt;\n\
+&lt;script&gt;\n \
+soundManager.setup({\n\
+      url: "'+crtRoot+'/plugins/editor.soundmanager/sm/swf/",\n\
+      debugMode : false\n\
+});\n\
+&lt;/script&gt;\n\
+<a href="#{DL_CT_LINK}&fake=ext.'+getAjxpMimeType(node)+'" class="sm2_button">'+node.getLabel()+'</a> '+node.getLabel());
+
+    },
+
+    getRESTPreviewLinks:function(node){
+        return {"MP3 Stream": "&file=" + encodeURIComponent(node.getPath())};
+    },
+
 	getPreview : function(ajxpNode, rich){
         if(!window.soundManager || !window.soundManager.enabled){
-            var im = new Element('img', {src:resolveImageSource(ajxpNode.getIcon(),'/images/mimes/ICON_SIZE',64),align:"absmiddle"});
-            return im;
+            return new Element('img', {src:resolveImageSource(ajxpNode.getIcon(),'/images/mimes/ICON_SIZE',64),align:"absmiddle"});
         }
         addVolumeButton();
-        var url = ajxpBootstrap.parameters.get('ajxpServerAccess')+'&get_action=audio_proxy&file='+base64_encode(ajxpNode.getPath());
+        var url = ajxpBootstrap.parameters.get('ajxpServerAccess')+'&get_action=audio_proxy&file='+encodeURIComponent(base64_encode(ajxpNode.getPath()));
         if(rich){
             url += '&rich_preview=true&fake=extension.'+ajxpNode.getAjxpMime();
         }else{
@@ -213,7 +262,7 @@ Class.create("SMPlayer", AbstractEditor, {
         container.resizePreviewElement = function(element){
             if(rich){
                 player.setStyle({
-                    marginLeft:parseInt((element.width-256)/2)+24+"px",
+                    marginLeft:parseInt((element.width-256)/2)+9+"px",
                     marginTop:'-15px'
                 });
                 if(Prototype.Browser.IE) {
@@ -222,33 +271,42 @@ Class.create("SMPlayer", AbstractEditor, {
                     }catch (e){}
                 }
             }else{
+                var addLeft = 12;
+                if(container.up('.thumbnail_selectable_cell.detailed')) addLeft = 2;
+                var mT, mB;
                 if(element.height >= 50)
                 {
-                    var mT = parseInt((element.height - 50)/2) + element.margin;
-                    var mB = element.height+(element.margin*2)-50-mT-1;
+                    mT = parseInt((element.height - 50)/2) + element.margin;
+                    mB = element.height+(element.margin*2)-50-mT-1;
                     container.removeClassName("nobackground");
                     container.setStyle({paddingTop:mT+'px', paddingBottom:mB+'px', marginBottom:'0px'});
                 }else{
-                    var mT = 0;
-                    var mB = element.height-40;
+                    mT = 0;
+                    mB = element.height-40;
                     container.addClassName("nobackground");
-                    container.setStyle({paddingTop:mT+'px', paddingBottom:'0px', marginBottom:mB+'px'});
+                    if(mB + addLeft < 0) {
+                        container.setStyle({marginTop:(mB/2)+'px', paddingBottom:'0px', marginLeft:((mB/2)-2)+'px'});
+                    }else{
+                        container.setStyle({paddingTop:mT+'px', paddingBottom:'0px', marginBottom:mB+'px'});
+                    }
                 }
                 container.setStyle({
-                    paddingLeft:Math.ceil((element.width-50)/2)+12+"px"
+                    paddingLeft:Math.ceil((element.width-50)/2)+addLeft+"px"
                 });
             }
         };
         container.destroyElement = function(){
-            var urlKey = container.down('a.sm2_link').href;
-            if(threeSixtyPlayer.getSoundByURL(urlKey)){
-                var theSound = threeSixtyPlayer.getSoundByURL(urlKey);
-                threeSixtyPlayer.sounds = $A(threeSixtyPlayer.sounds).without(theSound);
-                threeSixtyPlayer.soundsByURL[urlKey] = null;
-                delete threeSixtyPlayer.soundsByURL[urlKey];
-                soundManager.destroySound(theSound.sID);
+            if(container.down('a.sm2_link')) {
+                var urlKey = container.down('a.sm2_link').href;
+                if(threeSixtyPlayer.getSoundByURL(urlKey)){
+                    var theSound = threeSixtyPlayer.getSoundByURL(urlKey);
+                    threeSixtyPlayer.sounds = $A(threeSixtyPlayer.sounds).without(theSound);
+                    threeSixtyPlayer.soundsByURL[urlKey] = null;
+                    delete threeSixtyPlayer.soundsByURL[urlKey];
+                    soundManager.destroySound(theSound.sID);
+                }
             }
-        }
+        };
 
         threeSixtyPlayer.config.items = [player];
         threeSixtyPlayer.init();

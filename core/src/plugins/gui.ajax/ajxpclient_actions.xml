@@ -1,43 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<guidriver name="ajxpclient">
+<registry_contributions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:../core.ajaxplorer/ajxp_registry.xsd">
 	<actions>
-	<!-- 
-		<action name="get_boot_conf" skipSecureToken="true">
-			<processing>
-				<serverCallback methodName="switchAction"></serverCallback>
-			</processing>
-		</action>
-	-->
-		<action name="get_xml_registry">
-			<processing>
-				<serverCallback methodName="switchAction"></serverCallback>
-			</processing>
-		</action>
 		<action name="get_template">
 			<processing>
-				<serverCallback methodName="switchAction"></serverCallback>
+				<serverCallback methodName="switchAction"/>
 			</processing>
 		</action>
 		<action name="get_i18n_messages">
 			<processing>
-				<serverCallback methodName="switchAction"></serverCallback>
+				<serverCallback methodName="switchAction" restParams="/" developerComment="Load the list of translation strings">
+                    <output type="json" description="A JSON table of all strings contributed by all plugins."/>
+				</serverCallback>
 			</processing>
 		</action>
 		<action name="get_editors_registry">
 			<processing>
-				<serverCallback methodName="switchAction"></serverCallback>
+				<serverCallback methodName="switchAction"/>
 			</processing>
 		</action>
 		<action name="display_doc">
 			<processing>
-				<serverCallback methodName="switchAction"></serverCallback>
+				<serverCallback methodName="switchAction" restParams="/doc_file" developerComment="Load a doc file">
+                    <input_param name="doc_file" type="string" description="Text file base name (without extension) located inside the doc folder."/>
+				</serverCallback>
 			</processing>
 		</action>
 		<action name="up_dir">
-			<gui text="148" title="24" src="up.png" iconClass="icon-chevron-up" hasAccessKey="true"
+			<gui text="148" title="24" src="up.png" iconClass="icon-chevron-left" hasAccessKey="true"
 				accessKey="parent_access_key">
 				<context selection="false" dir="false" recycle="false"
-					actionBar="false" contextMenu="true" infoPanel="false" actionBarGroup="default">
+					actionBar="true" contextMenu="true" infoPanel="false" actionBarGroup="navigation">
 				</context>
 			</gui>
 			<rightsContext noUser="true" userLogged="only" read="true" write="false" adminOnly=""/>
@@ -46,12 +38,12 @@
 					ajaxplorer.fireContextUp();
 					]]></clientCallback>
 			</processing>
-		</action>		
+		</action>
 		<action name="refresh">
 			<gui text="149" title="149" iconClass="icon-refresh" src="reload.png" hasAccessKey="true"
 				accessKey="refresh_access_key">
 				<context selection="false" dir="true" recycle="false"
-					actionBar="false" actionBarGroup="default" contextMenu="true" infoPanel="false">
+					actionBar="false" actionBarGroup="navigation" contextMenu="true" infoPanel="false">
 				</context>
 			</gui>
 			<rightsContext noUser="true" userLogged="only" read="true" write="false" adminOnly=""/>
@@ -90,9 +82,9 @@
 					}
 					]]></clientCallback>
 				</processing>
-		</action>		
+		</action>
 		<action name="bookmark">
-			<gui text="152" title="153" src="bookmark.png" iconClass="icon-star-empty" hasAccessKey="true"
+			<gui text="152" title="153" src="bookmark.png" iconClass="icon-bookmark-empty" hasAccessKey="true"
 				accessKey="bookmarks_access_key">
 				<context selection="true" dir="false" recycle="hidden"
 					actionBar="true" contextMenu="true" infoPanel="false"
@@ -106,7 +98,7 @@
 					document.fire("ajaxplorer:add_bookmark");
 					]]></clientCallback>
 			</processing>
-		</action>		
+		</action>
 		<action name="delete_bookmark">
 			<gui text="154" title="155" src="folder_new.png"
 				accessKey="folder_access_key">
@@ -119,7 +111,7 @@
 					// TO DO
 					]]></clientCallback>
 			</processing>
-		</action>		
+		</action>
 		<action name="rename_bookmark">
 			<gui text="154" title="155" src="folder_new.png"
 				accessKey="folder_access_key">
@@ -133,10 +125,10 @@
 				<div id="rename_bookmark" action="get_bookmarks" box_width="200">
 				<input type="text" name="bm_title" value="" id="bm_title" class="dialogFocus">
 				<input type="hidden" name="bm_path" value="">
-				</div>				
+				</div>
 				]]></clientForm>
 			</processing>
-		</action>		
+		</action>
 		<action name="splash">
 			<gui text="166" title="167" src="info.png" iconClass="icon-question-sign" hasAccessKey="true"
 				accessKey="about_access_key">
@@ -148,9 +140,9 @@
 			<processing>
 				<clientCallback prepareModal="true"><![CDATA[
 				modal.showDialogForm(
-					'Ajaxplorer', 
-					'splash_form', 
-					function(oForm){						
+					'Pydio',
+					'splash_form',
+					function(oForm){
 						var docDiv = $(oForm).down('#docDiv');
 						if(!docDiv.isLoaded){
 							var conn = new Connexion(window.ajxpServerAccessPath + '&get_action=display_doc&doc_file=CREDITS');
@@ -159,21 +151,21 @@
 								docDiv.isLoaded = true;
 								var updateLink = docDiv.down('#software_update');
 							};
-							conn.sendAsync();													
+							conn.sendAsync();
 						}
-					}, 
-					function(){hideLightBox();return false;}, 
-					null, 
-					true, true);		
+					},
+					function(){hideLightBox();return false;},
+					null,
+					true, true);
 					]]></clientCallback>
 				<clientForm id="splash_form"><![CDATA[
-					<div id="splash_form" box_width="455" box_padding="0">						
-						<div id="docDiv" style="padding:5px;overflow:auto;height:300px;">
+					<div id="splash_form" box_width="600" box_padding="0">
+						<div id="docDiv" style="padding: 5px;overflow: auto;height: 410px;font-size: 12px;line-height: 16px;">
 							<div class="dialogButtons" style="text-align:right;padding-right:6px;"><input type="image" src="AJXP_THEME_FOLDER/images/actions/22/dialog_close.png" width="16" height="16" class="dialogButton"/></div>
 						</div>
-					</div>				
+					</div>
 				]]></clientForm>
 			</processing>
-		</action>		
+		</action>
 	</actions>
-</guidriver>
+</registry_contributions>

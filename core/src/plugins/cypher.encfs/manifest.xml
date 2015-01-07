@@ -18,6 +18,9 @@
         <global_param description="CONF_MESSAGE[Password used when generating the encfs6.xml file]"
                       label="CONF_MESSAGE[Encfs Password]" name="ENCFS_XML_PASSWORD"
                       type="string" mandatory="true" />
+        <global_param description="CONF_MESSAGE[User ID for the web accessing user (apache, www-data,...).]"
+                      label="CONF_MESSAGE[UID]" name="ENCFS_UID"
+                      type="integer" mandatory="true" default="33"/>
     </server_settings>
     <class_definition classname="EncfsMounter" filename="plugins/cypher.encfs/class.EncfsMounter.php"/>
     <registry_contributions>
@@ -62,7 +65,6 @@
                          </div>
                          </div>
                      ]]></clientForm>
-                    <serverCallback methodName="switchAction"/>
                 </processing>
             </action>
             <action name="encfs.cypher_folder">
@@ -83,7 +85,10 @@
                          conn.sendAsync();
                          hideLightBox();
                         ]]></clientCallback>
-                    <serverCallback methodName="switchAction"/>
+                    <serverCallback methodName="switchAction" restParams="/dir+" developerComment="Cypher a folder using EncFS plugin">
+                        <input_param name="dir" type="path" description="Path to the directory to encrypt"/>
+                        <input_param name="pass" type="string" description="Password for first encryption. Next calls, pass is not necessary, folder will just be unmounted."/>
+                    </serverCallback>
                 </processing>
             </action>
             <action name="encfs.uncypher_folder">
@@ -117,7 +122,10 @@
                          </div>
                          </div>
                      ]]></clientForm>
-                    <serverCallback methodName="switchAction"/>
+                    <serverCallback methodName="switchAction" restParams="/dir+" developerComment="Decrypt a folder using EncFS plugin.">
+                        <input_param name="dir" type="path" description="Path to the directory to encrypt" mandatory="true"/>
+                        <input_param name="pass" type="string" description="Password used at encrytion time" mandatory="true"/>
+                    </serverCallback>
                 </processing>
             </action>
             <action name="move">

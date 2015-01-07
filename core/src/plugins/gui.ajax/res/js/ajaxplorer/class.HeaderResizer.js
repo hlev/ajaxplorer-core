@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 /**
@@ -159,15 +159,18 @@ Class.create("HeaderResizer", {
 	 * Resize the headers with the passed sizes
 	 * @param sizes Array
 	 */
-	resizeHeaders : function(sizes){
+	resizeHeaders : function(sizes, loop){
 		
 		//this.checkBodyScroll();
-		
-		var innerWidth = this.getInnerWidth();	
-		if(!innerWidth) return;	
+
+		var innerWidth = this.getInnerWidth();
+		if(!innerWidth) return;
 		if(!sizes && this.currentInner && innerWidth != this.currentInner){
 			sizes = this.computePercentSizes(this.currentSizes, this.currentInner);
 		}
+        if(!sizes){
+            sizes = this.computeEqualSizes();
+        }
 		//console.log("return");
 		if(!sizes) return;
 		this.log("Inner Width:"+innerWidth+'/'+this.element.offsetWidth);
@@ -310,10 +313,11 @@ Class.create("HeaderResizer", {
 
 		// ADD CSS3 RULE
 		for(var i=0;i<newSizes.length;i++){
+            var selector;
 			if(useCSS3){
-				var selector = "#"+this.options.body.id+" td:nth-child("+(i+1)+")";
+				selector = "#"+this.options.body.id+" td:nth-child("+(i+1)+")";
 			}else{
-				var selector = "#"+this.options.body.id+" td.resizer_"+ (i);
+				selector = "#"+this.options.body.id+" td.resizer_"+ (i);
 			}
 			var rule = "width:"+(newSizes[i] + (Prototype.Browser.IE?10:0))+"px !important;";
 
@@ -349,26 +353,16 @@ Class.create("HeaderResizer", {
 	 * Creates a style sheet
 	 */
 	createStyleSheet : function(){
+        var sheet;
 		if(Prototype.Browser.IE){
-			return;
-			if(!window['ajxp_resizer_'+this.options.body.id]){
-		        window['ajxp_resizer_'+this.options.body.id] = document.createStyleSheet();
-			}
-			var sheet = window['ajxp_resizer_'+this.options.body.id];
-	        // Remove previous rules
-	        var rules = sheet.rules;
-	        var len = rules.length;	
-	        for (var i=len-1; i>=0; i--) {
-	          sheet.removeRule(i);
-	        }			
-			
+			return null;
 		}else{
 			var cssTag = $('resizer_css-'+this.options.body.id);
 			// Remove previous rules
 			if(cssTag) cssTag.remove();
 	        cssTag = new Element("style", {type:"text/css", id:'resizer_css-'+this.options.body.id});
 	        $$("head")[0].insert(cssTag);
-	        var sheet = cssTag.sheet;		        
+	        sheet = cssTag.sheet;
 		}
 		return sheet;		
 	},
@@ -377,19 +371,7 @@ Class.create("HeaderResizer", {
 	 * Removes a style sheet
 	 */
 	removeStyleSheet : function(){
-		if(Prototype.Browser.IE){
-			return;
-
-			if(window['ajxp_resizer_'+this.options.body.id]){
-		        // Remove previous rules
-		        var sheet = window['ajxp_resizer_'+this.options.body.id];
-		        var rules = sheet.rules;
-		        var len = rules.length;	
-		        for (var i=len-1; i>=0; i--) {
-		          sheet.removeRule(i);
-		        }			
-			}			
-		}else{
+		if(!Prototype.Browser.IE){
 			var cssTag = $('resizer_css-'+this.options.body.id);
 			if(cssTag) cssTag.remove();
 		}		
@@ -504,14 +486,14 @@ Class.create("HeaderResizer", {
 	getInnerWidth : function(){
 		var leftWidth = parseInt(this.element.getStyle('borderLeftWidth')) || 0;
 		var rightWidth = parseInt(this.element.getStyle('borderRightWidth')) || 0;
-		return innerWidth = this.element.getWidth() - leftWidth - rightWidth ;
+		return this.element.getWidth() - leftWidth - rightWidth ;
 	},
 	
 	/**
 	 * Get the header inner height
 	 */
 	getInnerHeight : function(element){
-		return innerWidth = element.getHeight() - (parseInt(element.getStyle('borderTopWidth')) || 0) - (parseInt(element.getStyle('borderBottomWidth')) || 0);
+		return element.getHeight() - (parseInt(element.getStyle('borderTopWidth')) || 0) - (parseInt(element.getStyle('borderBottomWidth')) || 0);
 	},		
 	
 	/**

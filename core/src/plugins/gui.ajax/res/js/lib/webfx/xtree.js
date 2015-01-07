@@ -165,6 +165,15 @@ function WebFXTreeAbstractNode(sText, sAction) {
 	webFXTreeHandler.all[this.id] = this;
 }
 
+function WebFXTreeBufferTreeChange(){
+    if (window.webfxtreebufferTimer) {
+        window.clearTimeout(window.webfxtreebufferTimer);
+    }
+    window.webfxtreebufferTimer = window.setTimeout(function(){
+        document.fire("ajaxplorer:tree_change");
+    }, 200);
+}
+
 /*
  * To speed thing up if you're adding multiple nodes at once (after load)
  * use the bNoIdent parameter to prevent automatic re-indentation and call
@@ -254,7 +263,7 @@ WebFXTreeAbstractNode.prototype.add = function (node, bNoIdent) {
             }, 100);
         }
 	}
-    document.fire("ajaxplorer:tree_change");
+    WebFXTreeBufferTreeChange();
 	return node;
 };
 
@@ -264,9 +273,25 @@ WebFXTreeAbstractNode.prototype.updateLabel = function(label){
 };
 
 WebFXTreeAbstractNode.prototype.setLabelIcon = function(icon){
+    if(!$(this.id+'-label')) return;
+    var label = $(this.id+'-label');
     var bgOverlayImage = "url('"+icon+"')";
     var bgOverlayPosition = '4px 1px';
-	if(this.overlayIcon){
+
+    if(this.overlayClasses){
+
+        var d = label.down('div.overlay_icon_div');
+        if(!d) {
+            d = new Element('div', {className:'overlay_icon_div'});
+            label.insert(d);
+        }else{
+            d.update('');
+        }
+        this.overlayClasses.each(function(c){
+            d.insert(new Element('span', {className: c+ ' overlay-class-span'}));
+        });
+
+    }else if(this.overlayIcon){
         switch(this.overlayIcon.length){
             case 1:
                 bgOverlayPosition = '14px 11px, 4px 1px';
@@ -289,12 +314,10 @@ WebFXTreeAbstractNode.prototype.setLabelIcon = function(icon){
         bgOverlayImage += " url('"+icon+"')";
     }
 
-	if($(this.id+'-label')) {
-        $(this.id+'-label').setStyle({
-            backgroundImage:bgOverlayImage,
-            backgroundPosition:bgOverlayPosition
-        });
-    }
+    label.setStyle({
+        backgroundImage:bgOverlayImage,
+        backgroundPosition:bgOverlayPosition
+    });
 };
 
 WebFXTreeAbstractNode.prototype.toggle = function() {
@@ -306,9 +329,9 @@ WebFXTreeAbstractNode.prototype.toggle = function() {
 
 WebFXTreeAbstractNode.prototype.select = function() {
 	if($(this.id + '-anchor')) {
-        $(this.id + '-anchor').focus();
-        webFXTreeHandler.focus(this);
         try{
+            $(this.id + '-anchor').focus();
+            webFXTreeHandler.focus(this);
             if(!this.scrollContainer){
                 var root = this;
                 while (root.parentNode) { root = root.parentNode; }
@@ -388,7 +411,7 @@ WebFXTreeAbstractNode.prototype.doExpand = function() {
 	if (webFXTreeConfig.usePersistence) {
 		webFXTreeHandler.cookies.setCookie(this.id.substr(18,this.id.length - 18), '1');
 	}
-    document.fire("ajaxplorer:tree_change");
+    WebFXTreeBufferTreeChange();
 } ;
 
 WebFXTreeAbstractNode.prototype.doCollapse = function() {
@@ -400,7 +423,7 @@ WebFXTreeAbstractNode.prototype.doCollapse = function() {
 	if (webFXTreeConfig.usePersistence) {
 		webFXTreeHandler.cookies.setCookie(this.id.substr(18,this.id.length - 18), '0');
 	}
-    document.fire("ajaxplorer:tree_change");
+    WebFXTreeBufferTreeChange();
 } ;
 
 WebFXTreeAbstractNode.prototype.expandAll = function() {
@@ -494,7 +517,7 @@ WebFXTree.prototype.expand = function() {
 } ;
 
 WebFXTree.prototype.collapse = function(b) {
-	if (!b) { this.focus(); }
+	if (!b) { try{this.focus();}catch(e){} }
 	this.doCollapse();
 } ;
 
@@ -552,7 +575,7 @@ WebFXTree.prototype.toString = function() {
  * WebFXTreeItem class
  */
 
-function WebFXTreeItem(sText, sAction, eParent, sIcon, sOpenIcon, sOverlayIcon) {
+function WebFXTreeItem(sText, sAction, eParent, sIcon, sOpenIcon, sOverlayIcon, sOverlayClasses) {
 	this.base = WebFXTreeAbstractNode;
 	this.base(sText, sAction);
 	/* Defaults to close */
@@ -562,6 +585,7 @@ function WebFXTreeItem(sText, sAction, eParent, sIcon, sOpenIcon, sOverlayIcon) 
 	if (sIcon) { this.icon = sIcon; }
 	if (sOpenIcon) { this.openIcon = sOpenIcon; }
     if (sOverlayIcon) { this.overlayIcon = sOverlayIcon; }
+    if (sOverlayClasses) { this.overlayClasses = sOverlayClasses; }
 	if (eParent) { eParent.add(this); }
 }
 
@@ -640,7 +664,7 @@ WebFXTreeItem.prototype.expand = function() {
 };
 
 WebFXTreeItem.prototype.collapse = function(b) {
-	if (!b) { this.focus(); }
+	if (!b) { try{this.focus();}catch(e){} }
 	this.doCollapse();
 	if($(this.id + '-plus')) $(this.id + '-plus').src = this.plusIcon;
 };
@@ -737,7 +761,16 @@ WebFXTreeItem.prototype.toString = function (nItem, nItemCount) {
 	else if (!this.icon) { this.icon = webFXTreeConfig.fileIcon; }
     var bgOverlayImage = '';
     var bgOverlayPosition = '4px 1px';
-	if(this.overlayIcon){
+    var d = '';
+    if(this.overlayClasses){
+
+        d = '<div class="overlay_icon_div">';
+        this.overlayClasses.each(function(c){
+            d+='<span class="overlay-class-span '+c+'"></span>';
+        });
+        d+='</div>';
+
+    }else if(this.overlayIcon){
         switch(this.overlayIcon.length){
             case 1:
                 bgOverlayPosition = '14px 11px, 4px 1px';
@@ -758,8 +791,8 @@ WebFXTreeItem.prototype.toString = function (nItem, nItemCount) {
             break;
         }
     }
-	var label = this.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-	var str = "<div id=\"" + this.id + "\" class=\"webfx-tree-item\" onkeydown=\"return webFXTreeHandler.keydown(this, event)\">" +
+	var label = this.text.replace(/</g, '&lt;').replace(/>/g, '&gt;') + d;
+	var str = "<div id=\"" + this.id + "\" class=\"webfx-tree-item\" onkeydown=\"return webFXTreeHandler.keydown(this, event)\" data-node-icon=\"" + getBaseName((this.open?this.openIcon:this.icon)) + "\">" +
 		indent +
 		"<img  width=\"19\" height=\"25\" id=\"" + this.id + "-plus\" src=\"" + ((this.folder)?((this.open)?((this.parentNode._last)?webFXTreeConfig.lMinusIcon:webFXTreeConfig.tMinusIcon):((this.parentNode._last)?webFXTreeConfig.lPlusIcon:webFXTreeConfig.tPlusIcon)):((this.parentNode._last)?webFXTreeConfig.lIcon:webFXTreeConfig.tIcon)) + "\">" +
 		"<a href=\"" + this.url + "\" id=\"" + this.id + "-anchor\" onkeydown=\"return webFXTreeHandler.linkKeyPress(this, event);\" onfocus=\"webFXTreeHandler.focus(this);\" onblur=\"webFXTreeHandler.blur(this);\"" +

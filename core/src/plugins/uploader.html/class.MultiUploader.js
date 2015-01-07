@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  * Credit:
  *   Original class by Stickman -- http://www.the-stickman.com
  *      with thanks to:
@@ -56,18 +56,16 @@ Class.create("MultiUploader", {
 		
 		this.crtContext = ajaxplorer.getUserSelection();
 		this.addElement(formObject.select('.dialogFocus')[0]);
-		var rep = new Element('input', {
-			type:'hidden', 
-			name:'dir', 
-			value:this.crtContext.getContextNode().getPath()
-		});
-		formObject.insert(rep);		
-		var rep = new Element('input', {
-			type:'hidden', 
-			name:'secure_token', 
-			value:window.Connexion.SECURE_TOKEN
-		});
-		formObject.insert(rep);		
+		formObject.insert(new Element('input', {
+            type:'hidden',
+            name:'dir',
+            value:this.crtContext.getContextNode().getPath()
+        }));
+		formObject.insert(new Element('input', {
+            type:'hidden',
+            name:'secure_token',
+            value:window.Connexion.SECURE_TOKEN
+        }));
 		
 		this.currentFileUploading = null;
 		this.nextToUpload = -1;
@@ -95,22 +93,22 @@ Class.create("MultiUploader", {
 		// FIX IE DISPLAY BUG
 		if(Prototype.Browser.IE){
 			$('fileInputContainerDiv').insert($('uploadBrowseButton'));
-			$('fileInputContainerDiv').insert($('uploadSendButton'));
+			//$('fileInputContainerDiv').insert($('uploadSendButton'));
 			$('uploadBrowseButton').show();
-			$('uploadSendButton').show();
+			//$('uploadSendButton').show();
 		}
         if(Prototype.Browser.IE){
             modal.closeValidation = function(){
                 $(document.body).insert($('uploadBrowseButton'));
-                $(document.body).insert($('uploadSendButton'));
+                //$(document.body).insert($('uploadSendButton'));
                 $('uploadBrowseButton').hide();
-                $('uploadSendButton').hide();
+                //$('uploadSendButton').hide();
                 return true;
             };
         }
 		// ATTACH LISTENERS ON BUTTONS (once only, that for the "observerSet")
-		var sendButton = formObject.down('#uploadSendButton');
-		if(sendButton.observerSet) return;		
+		this.sendButton = formObject.down('#uploadSendButton');
+		if(this.sendButton.observerSet) return;
 		var optionsButton = formObject.down('#uploadOptionsButton');
 		var closeButton = formObject.down('#uploadCloseButton');
         if(formObject.down('#uploader_options_pane')){
@@ -119,8 +117,8 @@ Class.create("MultiUploader", {
         if(formObject.down('#clear_list_button')){
             formObject.down('#clear_list_button').hide();
         }
-		sendButton.observerSet = true;
-		sendButton.observe("click", function(){
+		this.sendButton.observerSet = true;
+		this.sendButton.observe("click", function(){
 			ajaxplorer.actionBar.multi_selector.submitMainForm();
 		});
 		optionsButton.observe("click", function(){
@@ -171,7 +169,7 @@ Class.create("MultiUploader", {
 				// Update list
 				this.multi_selector.addListRow( this );
 
-				// Hide this: we can't use display:none because Safari doesn't like it				
+				// Hide this: we can't use display:none because Safari doesn't like it
 				this.style.position = 'absolute';
 				this.style.left = '-1000px';
 				if(Prototype.Browser.IE){
@@ -190,11 +188,11 @@ Class.create("MultiUploader", {
 			this.count++;
 			// Most recent element
 			this.current_element = element;
-			
+
 		} else {
 			// This can only be applied to file input elements!
 			alert( 'Error: not a file input element' );
-		};
+		}
 
 	},
 
@@ -268,12 +266,12 @@ Class.create("MultiUploader", {
 		new_row.appendChild(document.createTextNode(value));
 		// Add it to the list
 		this.list_target.appendChild( new_row );
-		
-	},
+        this.sendButton.removeClassName("disabled");
+    },
 	
 	getFileNames : function(){
 		
-		var fileNames = new Array();
+		var fileNames = $A();
 		for(var i=0; i<this.list_target.childNodes.length;i++)
 		{
 			fileNames.push(this.list_target.childNodes[i].element.value);
@@ -308,7 +306,7 @@ Class.create("MultiUploader", {
 		this.currentFileUploading = null;
 		this.nextToUpload = -1;
 		var formsCount = 0;
-		var i = 0;
+		var i;
 		for(i=0;i<this.id + 1;i++)
 		{
 
@@ -317,9 +315,9 @@ Class.create("MultiUploader", {
 			newForm.id = 'pendingform_'+formsCount;
 			var addUserFile = false;
 			var inputs = $(this.mainForm).select("input");
-			for(j=0;j<inputs.length;j++)
+			for(var j=0;j<inputs.length;j++)
 			{
-				element = inputs[j];
+				var element = inputs[j];
 				if((element.type == 'file' && element.multi_index == i && element.value != '') || element.type=='hidden' || element.type=='submit'){
 					//var nodeCopy = element.cloneNode(true);
 					if(element.type == 'file') {
@@ -361,8 +359,7 @@ Class.create("MultiUploader", {
 			var crtValue = $(nextToSubmit).getElementsBySelector('input[type="file"]')[0].value;
             if(this.crtContext.fileNameExists(crtValue))
 			{
-				overwrite = confirm(MessageHash[124]);
-				if(!overwrite){
+				if(!confirm(MessageHash[124])){
 					this.submitNext(true);
 					return;
 				}
@@ -373,7 +370,6 @@ Class.create("MultiUploader", {
 		else
 		{
             document.fire("ajaxplorer:longtask_finished");
-			//ajaxplorer.fireContextRefresh();
 		}
 		
 	}

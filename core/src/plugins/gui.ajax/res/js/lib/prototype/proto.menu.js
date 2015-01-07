@@ -11,7 +11,7 @@ if (Object.isUndefined(Proto)) { var Proto = { }; }
 Proto.Menu = Class.create({
 	initialize: function() {
 		var e = Prototype.emptyFunction;
-		this.ie = Prototype.Browser.IE;
+		this.ie = (Prototype.Browser.IE && navigator.userAgent.indexOf('MSIE 10') == -1);
 		this.options = Object.extend({
 			selector: '.contextmenu',
 			className: 'protoMenu',
@@ -23,6 +23,7 @@ Proto.Menu = Class.create({
 			submenuArrow:ajxpResourcesFolder+'/images/arrow_right.png',
 			position:'bottom',
 			menuTitle:'',
+            detailedItems: false,
 			fade: false,
 			zIndex: 100,
 			createAnchor:false,
@@ -62,6 +63,11 @@ Proto.Menu = Class.create({
 		}
 		this.options.fade = this.options.fade && !Object.isUndefined(Effect);
 		this.container = new Element('div', {className: this.options.className, style: 'display:none'});
+
+        this.observerFunctionBound = this.observerFunction.bind(this);
+        this.mouseoverFunctionBound = this.mouseoverFunction.bind(this);
+        this.mouseoutFunctionBound = this.mouseoutFunction.bind(this);
+
 		if(this.options.mouseClick == 'right'){			
 			$(document.body).observe('contextmenu', function(e){Event.stop(e);});
 			$(document.body).insert(this.container.observe('contextmenu', Event.stop));
@@ -70,12 +76,14 @@ Proto.Menu = Class.create({
 		}		
 		if (this.ie) { $(document.body).insert(this.shim); }
 		if(this.eventToObserve == 'mouseover'){
-			this.container.observe("mouseover", this.mouseoverFunction.bind(this) );
-			this.container.observe("mouseout",this.mouseoutFunction.bind(this) );
+			this.container.observe("mouseover", this.mouseoverFunctionBound );
+			this.container.observe("mouseout",this.mouseoutFunctionBound );
 		}		
 
 		document.observe('click', function(e) {
-			if (this.container.visible() && !e.isRightClick()) {
+			if (this.container.visible() && !e.isRightClick() &&
+                !(this.options.mouseClick == 'over' && !Object.isString(this.options.anchor) && this.options.anchor.id && Event.findElement(e, "#"+this.options.anchor.id))
+                ) {
 				this.hide();
 			}
 		}.bind(this));
@@ -95,7 +103,6 @@ Proto.Menu = Class.create({
 	},
 	
 	observerFunction:function(e){
-		//if (this.options.mouseClick == 'right' && Prototype.Browser.Opera && !e.ctrlKey) return;
 		if (this.options.mouseClick == 'left' && Event.findElement(e, '.protomenu_selector') && Event.findElement(e, '.protomenu_selector').hasClassName('disabled')){
 			return;
 		}
@@ -124,27 +131,27 @@ Proto.Menu = Class.create({
 			$$(selectorOrObject).invoke('removeClassName', 'protomenu_selector');
 			$$(selectorOrObject).invoke('stopObserving', 
 								this.eventToObserve,
-								this.observerFunction.bind(this));		
+								this.observerFunctionBound);
 		}else{
 			$(selectorOrObject).removeClassName('protomenu_selector');
-			$(selectorOrObject).stopObserving(this.eventToObserve, this.observerFunction.bind(this));
+			$(selectorOrObject).stopObserving(this.eventToObserve, this.observerFunctionBound);
 		}
 	},
 	
 	addElements:function(selectorOrObject){
 		if(typeof(selectorOrObject) == "string"){
-			$$(selectorOrObject).invoke('observe', this.eventToObserve, this.observerFunction.bind(this));		
+			$$(selectorOrObject).invoke('observe', this.eventToObserve, this.observerFunctionBound);
 			$$(selectorOrObject).invoke('addClassName', 'protomenu_selector');
 			if(this.eventToObserve == "mouseover"){
-					$$(selectorOrObject).invoke('observe', 'mouseover', this.mouseoverFunction.bind(this));
-					$$(selectorOrObject).invoke('observe', 'mouseout', this.mouseoutFunction.bind(this));
+					$$(selectorOrObject).invoke('observe', 'mouseover', this.mouseoverFunctionBound);
+					$$(selectorOrObject).invoke('observe', 'mouseout', this.mouseoutFunctionBound);
 			}			
 		}else{
-			$(selectorOrObject).observe(this.eventToObserve, this.observerFunction.bind(this));
+			$(selectorOrObject).observe(this.eventToObserve, this.observerFunctionBound);
 			$(selectorOrObject).addClassName('protomenu_selector');
 			if(this.eventToObserve == "mouseover"){
-				$(selectorOrObject).observe("mouseover", this.mouseoverFunction.bind(this) );
-				$(selectorOrObject).observe("mouseout", this.mouseoutFunction.bind(this));
+				$(selectorOrObject).observe("mouseover", this.mouseoverFunctionBound);
+				$(selectorOrObject).observe("mouseout", this.mouseoutFunctionBound);
 			}
 		}
 	},
@@ -162,10 +169,17 @@ Proto.Menu = Class.create({
 				}).update(text)
 			);		
 		}
+        var registeredKeys = $A();
 		this.options.menuItems.each(function(item) {
-			
+
+            if(!item.separator){
+                var key = item.name;
+                if(registeredKeys.indexOf(key) !== -1) return;
+                registeredKeys.push(key);
+            }
+
 			var newItem = new Element('li', {className: item.separator ? 'separator' : ''});
-			
+
 			if(item.moreActions){
 				var actionsContainer = new Element('div', {
                     className:'menuActions moreActions',
@@ -205,8 +219,13 @@ Proto.Menu = Class.create({
                 newItem.setStyle({position:"relative"});
 			}
 			if(item.action_id && ajaxplorer && ajaxplorer.getActionBar() && ajaxplorer.getActionBar().getActionByName(item.action_id)){
-                item.name = ajaxplorer.getActionBar().getActionByName(item.action_id).getKeyedText();
-                item.title = ajaxplorer.getActionBar().getActionByName(item.action_id).options.title;
+                var actionObject = ajaxplorer.getActionBar().getActionByName(item.action_id);
+                if(this.options.detailedItems){
+                    item.name = '<span class="menu_label">'+ actionObject.getKeyedText() + '</span>' + '<span class="menu_description">'+ actionObject.options.title + '</span>'
+                }else{
+                    item.name = actionObject.getKeyedText();
+                }
+                item.title = actionObject.options.title;
             }
             var img = '';
             if(item.icon_class && window.ajaxplorer.currentThemeUsesIconFonts){
@@ -220,22 +239,25 @@ Proto.Menu = Class.create({
                 img = item.pFactory.generateBasePreview(item.ajxpNode);
             }
 
-			newItem.insert(
-					item.separator 
-						? '' 
-						: Object.extend(new Element('a', {
-							href: '#',
-							title: item.alt,
-                            id:(item.action_id?'action_instance_'+item.action_id:''),
-							className: (item.className?item.className+' ':'') + (item.disabled ? 'disabled' : 'enabled'),
-							style:(item.isDefault?'font-weight:bold':'')
-						}), { _callback: item.callback })
-						.writeAttribute('onclick', 'return false;')
-						.observe('click', this.onClick.bind(this))
-						.observe('contextmenu', Event.stop)
-						.update(Object.extend(img, {_callback:item.callback} ))
-						.insert(item.name)
+            if(item.separator && item.menuTitle){
+                newItem.insert(item.menuTitle);
+                newItem.addClassName('menuTitle');
+            }else{
+			    newItem.insert(
+                    Object.extend(new Element('a', {
+                        href: '#',
+                        title: item.alt,
+                        id:(item.action_id?'action_instance_'+item.action_id:''),
+                        className: (item.className?item.className+' ':'') + (item.disabled ? 'disabled' : 'enabled'),
+                        style:(item.isDefault?'font-weight:bold':'')
+                    }), { _callback: item.callback })
+                    .writeAttribute('onclick', 'return false;')
+                    .observe('click', this.onClick.bind(this))
+                    .observe('contextmenu', Event.stop)
+                    .update(Object.extend(img, {_callback:item.callback} ))
+                    .insert(item.name)
 				);
+            }
             if(newItem.down('u')){
                 newItem.down('u')._callback = item.callback;
             }
@@ -293,7 +315,12 @@ Proto.Menu = Class.create({
         // Clean separators
         list.select("li.separator").each(function(sep){
             var next = sep.next("li");
-            if(!next || next.hasClassName('separator')) sep.remove();
+            var prev = sep.previous("li");
+            if(!prev || prev.hasClassName('separator') || prev.hasClassName('menuTitle')) {
+                sep.remove();
+                return;
+            }
+            if(!next || next.hasClassName('separator') || prev.hasClassName('menuTitle')) sep.remove();
         });
 	},
 	
@@ -306,7 +333,6 @@ Proto.Menu = Class.create({
 	  	}		
 		this.options.beforeShow(e);
 		this.refreshList();	
-		//if(!this.options.menuItems.length) return;
 		var elOff = {};
 		var elDim = this.container.getDimensions();
 		if(this.options.anchor == 'mouse'){
@@ -314,68 +340,87 @@ Proto.Menu = Class.create({
 		}else{
 			elOff = this.computeAnchorOffset();		
 		}
-		this.container.setStyle(elOff);		
+		this.container.setStyle(elOff);
 		this.container.setStyle({zIndex: this.options.zIndex});
 		if (this.ie) { 
 			this.shim.setStyle(Object.extend(Object.extend(elDim, elOff), {zIndex: this.options.zIndex - 1})).show();
 		}				
 		if(this.options.fade){
             this.checkHeight(elOff.top);
+            this.correctWindowClipping(this.container, elOff, elDim);
 			Effect.Appear(this.container, {
 				duration: this.options.fadeTime || 0.15, 
 				afterFinish : function(e){
 					this.checkHeight(elOff.top);
+                    this.correctWindowClipping(this.container, elOff, elDim);
 				}.bind(this)
 			});
 		}else{
 			this.container.show();
 			this.checkHeight(elOff.top);
+            this.correctWindowClipping(this.container, elOff, elDim);
 		}
 		this.event = e;
+        window.setTimeout(function(){
+            if(!this.container.select('li').length) this.hide();
+        }.bind(this), 150);
+
 	},
-	
+
+    correctWindowClipping: function(container, position, dim){
+        var viewPort = document.viewport.getDimensions();
+        if(parseInt(position.left) + dim.width > viewPort.width ){
+            position.left = parseInt(position.left) + (viewPort.width - (parseInt(position.left) + dim.width) - 5);
+            container.setStyle({left:position.left + "px"});
+        }
+    },
+
+
 	checkHeight : function(offsetTop){
         offsetTop = parseInt(offsetTop);
 		if(this.options.anchor == 'mouse') return;
 		var vpHeight = getViewPortHeight()-10;
         if(this.options.menuMaxHeight){
             vpHeight = Math.min(this.options.menuMaxHeight, vpHeight);
+        }else if(this.options.menuFitHeight){
+            vpHeight = getViewPortHeight();
         }
 		var vpOff = document.viewport.getScrollOffsets();
 		var elDim = this.container.getDimensions();
 		var y = parseInt(offsetTop);
-		if((y - vpOff.top + elDim.height) >= vpHeight){
+		if((y - vpOff.top + elDim.height) >= vpHeight || this.options.menuFitHeight){
 			this.container.setStyle({height:(vpHeight-(y - vpOff.top))+'px',overflowY:'scroll'}); 
 			if(!this.containerShrinked) this.container.setStyle({width:elDim.width+16+'px'});
 			this.containerShrinked = true;
-		}else{
-			this.container.setStyle({height:'auto', overflowY:'hidden'});
-		}		
-	},
+        }else{
+            this.container.setStyle({height:'auto', overflowY:'hidden'});
+        }
+        attachMobileScroll(this.container, "vertical");
+    },
 	
 	computeMouseOffset: function(e){
 		var x = Event.pointer(e).x,
 			y = Event.pointer(e).y,
 			vpDim = document.viewport.getDimensions(),
 			vpOff = document.viewport.getScrollOffsets(),
-			elDim = this.container.getDimensions(),
-			elOff = {
+			elDim = this.container.getDimensions();
+			return {
 				left: ((x + elDim.width + this.options.pageOffset) > vpDim.width 
 					? (vpDim.width - elDim.width - this.options.pageOffset) : x) + 'px',
 				top: ((y - vpOff.top + elDim.height) > vpDim.height && (y - vpOff.top) > elDim.height 
 					? (y - elDim.height) : y) + 'px'
 			};
-		return elOff;	
 	},
 	
 	computeAnchorOffset: function(){
 		//if(this.anchorOffset) return this.anchorOffset;
 		var anchorPosition = Position.cumulativeOffset($(this.options.anchor));
 		var anchorScroll = this.options.anchor.cumulativeScrollOffset();
-		
+		var topPos, leftPos;
+
 		if(this.options.position == 'bottom' || this.options.position == 'bottom right' || this.options.position == 'bottom middle'){
-			var topPos = anchorPosition[1] + $(this.options.anchor).getHeight() + this.options.topOffset - anchorScroll[1];
-			var leftPos = anchorPosition[0] + this.options.leftOffset - anchorScroll[0];
+			topPos = anchorPosition[1] + $(this.options.anchor).getHeight() + this.options.topOffset - anchorScroll[1];
+			leftPos = anchorPosition[0] + this.options.leftOffset - anchorScroll[0];
 			if(this.options.position == 'bottom right'){
 				leftPos = anchorPosition[0] + $(this.options.anchor).getWidth() + this.options.leftOffset - anchorScroll[0];
 				leftPos -= this.container.getWidth();
@@ -385,8 +430,8 @@ Proto.Menu = Class.create({
 			}
 		}else if(this.options.position == 'right'){
 			var vpDim = document.viewport.getDimensions();
-			var topPos = anchorPosition[1] + this.options.topOffset - anchorScroll[1];
-			var leftPos = anchorPosition[0] + $(this.options.anchor).getWidth() + this.options.leftOffset - anchorScroll[0];
+			topPos = anchorPosition[1] + this.options.topOffset - anchorScroll[1];
+			leftPos = anchorPosition[0] + $(this.options.anchor).getWidth() + this.options.leftOffset - anchorScroll[0];
 			if(leftPos + this.container.getDimensions().width > vpDim.width){
 				leftPos = anchorPosition[0] - (this.container.getDimensions().width);
 			}
@@ -408,15 +453,18 @@ Proto.Menu = Class.create({
 	},
 	
 	onClick: function(e) {
-		//e.stop();
-		if (e.target._callback && !e.target.hasClassName('disabled')) {
-			this.options.beforeSelect(e);
+        var target = e.target;
+        if(!e.target._callback && e.target.up('li') && e.target.up('li')._callback){
+            target = e.target.up('li');
+        }
+        if (target._callback && !target.hasClassName('disabled')) {
+            this.options.beforeSelect(e);
 			if(this.options.anchor && typeof(this.options.anchor)!="string"){
 				this.options.anchor.removeClassName('menuAnchorSelected');
 			}
 			if (this.ie) this.shim.hide();
 			this.container.hide();
-			e.target._callback(this.event);
+			target._callback(this.event);
 		}		
 	},
 	
