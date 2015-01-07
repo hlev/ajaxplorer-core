@@ -128,8 +128,8 @@ else if(isSet($_COOKIE["AJXP_lang"])) ConfService::setLanguage($_COOKIE["AJXP_la
 if (AuthService::usersEnabled()) {
     $loggedUser = AuthService::getLoggedUser();
     if ($action == "upload" && ($loggedUser == null || !$loggedUser->canWrite(ConfService::getCurrentRepositoryId()."")) && isSet($_FILES['Filedata'])) {
-        header('HTTP/1.0 ' . '410 Not authorized');
-        die('Error 410 Not authorized!');
+        header('HTTP/1.0 401 Unauthorized');
+        die('Error 401 Unauthorized!');
     }
 }
 
