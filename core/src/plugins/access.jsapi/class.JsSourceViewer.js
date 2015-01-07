@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  * Description : A dynamic panel displaying details on the current selection. Works with Templates.
  */
 Class.create("JsSourceViewer", AjxpPane, {
@@ -56,8 +56,7 @@ Class.create("JsSourceViewer", AjxpPane, {
 	},
 	
 	/**
-	 * Test
-	 * @return nothing
+	 * @return void
 	 */
 	empty : function(){
 		this.setContent('');
@@ -82,7 +81,6 @@ Class.create("JsSourceViewer", AjxpPane, {
 		if(!contextNode) {
 			contextNode = userSelection.getContextNode();
 		}
-		var path = contextNode.getPath();
 		var objectNode = contextNode;
 		if(contextNode.isLeaf() && !contextNode.getMetadata().get("API_OBJECT_NODE")){
 			var metadata = contextNode.getMetadata();
@@ -137,6 +135,7 @@ Class.create("JsSourceViewer", AjxpPane, {
 	
 	applyPointer : function(){
 		if(!this.pendingPointer) return;
+        var cursor;
 		if(this.pendingPointerType == "MemberName"){
 			cursor = this.codeMirror.getSearchCursor(this.pendingPointer+':', false, false);
 			if(cursor.findNext()){
@@ -146,7 +145,6 @@ Class.create("JsSourceViewer", AjxpPane, {
 			cursor = this.codeMirror.getSearchCursor(this.pendingPointer+' :', false, false);
 			if(cursor.findNext()){
 				cursor.select();
-				return;
 			}
 		}else{
 			cursor = this.codeMirror.getSearchCursor(".create('" + this.pendingPointer+"'", false, false);
@@ -157,8 +155,7 @@ Class.create("JsSourceViewer", AjxpPane, {
 			cursor = this.codeMirror.getSearchCursor('.create("' + this.pendingPointer+'"', false, false);
 			if(cursor.findNext()){
 				this.codeMirror.jumpToLine(cursor.position().line);
-				return;
-			}			
+			}
 		}		
 	},
 	

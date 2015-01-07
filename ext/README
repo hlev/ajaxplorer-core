@@ -17,6 +17,14 @@
  *
  * The latest code can be found at <http://www.ajaxplorer.info/>.
  */
+2014-01-16 : Switch to Pydio
+
+Rechecked that the plugins were working on all recent versions of WP, Joomla! and Drupal.
+Massively update the How-To's to reflect the name change but also the fact that the conf is no more in a bootstrap file but through the Settings panel.
+
+2013-05-10 : Update of Joomla plugin
+
+The Joomla! plugin should be working on 2.5 (use the 1.7/ folder content) and 3.0 (new 3.0/ folder).
 
 2011-12-16 : This is the Ajaxplorer v4 Compatible CMS Bridges Package.
 
@@ -27,6 +35,5 @@ Package content :
 
 > Modules for Drupal 6.X & 7.X
 > Wordpress Extension
-> Joomla Plugin for 1.5 & 1.6 , working ok on 1.7
-> Cmsms NOT RETESTED recently
+> Joomla Plugin for 1.5 & 1.6 , working ok on 1.7, 2.5, 3.0
 > "No_Cms" : login page sample if you want a simple external login page.

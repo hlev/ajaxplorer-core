@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 /**
@@ -77,17 +77,18 @@ Class.create("PropertyPanel", {
         var emptyLabel = new Element('td');
         headerRow.insert(emptyLabel);
 		tHead.insert(headerRow);
-		for(var j=0;j<3;j++){
+        var i,j;
+		for(j=0;j<3;j++){
 			headerRow.insert(new Element('td').update(this.rightsLabels[j]+'&nbsp;&nbsp;').setStyle({textAlign:'center'}));
 		}
 		// Boxes lines
-		for(var i=0;i<3;i++){
+		for(i=0;i<3;i++){
             var permRow = new Element('tr');
 			var label = new Element('td').setStyle({textAlign:'right',paddingRight:'2px', width:'35px'});
 			label.insert(this.accessLabels[i]);
 			tBody.insert(permRow);
             permRow.insert(label);
-			for(var j=0;j<3;j++){
+			for(j=0;j<3;j++){
 				var check = this.createCheckBox(this.accessors[i], this.rights[j]);
 				permRow.insert(check);
 			}
@@ -131,6 +132,7 @@ Class.create("PropertyPanel", {
 		var choicesDiv = new Element('div');
 		recuDiv.insert(choicesDiv);
 		for(var key in choices){
+            if(!choices.hasOwnProperty(key)) continue;
 			var choiceDiv = new Element('div', {style:'padding-left:25px'});
 			var choiceDivBox = new Element('input', {
 				type:'radio',

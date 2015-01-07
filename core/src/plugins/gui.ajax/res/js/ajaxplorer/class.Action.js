@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 /** 
@@ -50,6 +50,7 @@ Class.create("Action", {
 			callback:Prototype.emptyFunction,
 			prepareModal:false, 
 			listeners : [],
+            activeCondition:null,
 			formId:undefined, 
 			formCode:undefined
 			}, arguments[0] || { });
@@ -77,7 +78,8 @@ Class.create("Action", {
 			allowedMimes:$A([]),
             evalMetadata:'',
 			unique:true,
-			multipleOnly:false
+			multipleOnly:false,
+            enableRoot:false
 			}, arguments[2] || { });
 		this.rightsContext = Object.extend({			
 			noUser:true,
@@ -92,7 +94,7 @@ Class.create("Action", {
 			dynamicItems:null,
 			dynamicBuilderCode:null
 		}, arguments[4] || {});
-		this.elements = new Array();
+		this.elements = $A();
 		this.contextHidden = false;
 		this.deny = false;
 		if(this.context.subMenu){
@@ -145,6 +147,7 @@ Class.create("Action", {
 			);
 		}
 		window.actionArguments = $A([]);
+		window.actionManager = this.manager;
 		if(arguments[0]) window.actionArguments = $A(arguments[0]);
 		if(this.options.callbackCode) {
 			try{
@@ -155,22 +158,22 @@ Class.create("Action", {
 		}else if(this.options.callbackDialogNode){
 			var node = this.options.callbackDialogNode;
 			var dialogFormId = node.getAttribute("dialogOpenForm");
-			var okButtonOnly = (node.getAttribute("dialogOkButtonOnly") === "true")?true:false ;
-			var skipButtons = (node.getAttribute("dialogSkipButtons") === "true")?true:false ;
+			var okButtonOnly = (node.getAttribute("dialogOkButtonOnly") === "true") ;
+			var skipButtons = (node.getAttribute("dialogSkipButtons") === "true") ;
 			
 			var onOpenFunc = null; var onCompleteFunc = null; var onCancelFunc = null;
 			var onOpenNode = XPathSelectSingleNode(node, "dialogOnOpen");
-			if(onOpenNode && onOpenNode.firstChild) var onOpenFunc = new Function("oForm", onOpenNode.firstChild.nodeValue);
+			if(onOpenNode && onOpenNode.firstChild) onOpenFunc = new Function("oForm", onOpenNode.firstChild.nodeValue);
 			var onCompleteNode = XPathSelectSingleNode(node, "dialogOnComplete");
 			if(onCompleteNode && onCompleteNode.firstChild) {
 				var completeCode = onCompleteNode.firstChild.nodeValue;
 				if(onCompleteNode.getAttribute("hideDialog") === "true"){
 					completeCode += "hideLightBox(true);";
 				}
-				var onCompleteFunc = new Function("oForm", completeCode);
+				onCompleteFunc = new Function("oForm", completeCode);
 			}
 			var onCancelNode = XPathSelectSingleNode(node, "dialogOnCancel");
-			if(onCancelNode && onCancelNode.firstChild) var onCancelFunc = new Function("oForm", onCancelNode.firstChild.nodeValue);
+			if(onCancelNode && onCancelNode.firstChild) onCancelFunc = new Function("oForm", onCancelNode.firstChild.nodeValue);
 			
 			this.options.callback = function(){
 				modal.showDialogForm('Dialog', dialogFormId, onOpenFunc, onCompleteFunc, onCancelFunc, okButtonOnly, skipButtons);
@@ -184,6 +187,7 @@ Class.create("Action", {
 			this.notify("submenu_active", arguments[0][0]);
 		}
 		window.actionArguments = null;
+		window.actionManager = null;
         document.fire("ajaxplorer:afterApply-"+this.options.name);
 	},
 		
@@ -214,7 +218,7 @@ Class.create("Action", {
 		if(this.options.listeners["contextChange"]){
 			window.listenerContext = this;
 			this.options.listeners["contextChange"].evalScripts();			
-		}		
+		}
 		var rightsContext = this.rightsContext;
 		if(!rightsContext.noUser && !usersEnabled){
 			return this.hideForContext();				
@@ -242,6 +246,9 @@ Class.create("Action", {
 			if( !this.context.allowedMimes.include("*") && !this.context.allowedMimes.include(crtAjxpMime)){
 				return this.hideForContext();
 			}
+            if( this.context.allowedMimes.include("^"+crtAjxpMime)){
+                return this.hideForContext();
+            }
 		}
 		if(this.context.recycle){
 			if(this.context.recycle == 'only' && !crtIsRecycle){
@@ -269,16 +276,19 @@ Class.create("Action", {
 			window.listenerContext = this;
 			this.options.listeners["selectionChange"].evalScripts();			
 		}
-		if(arguments.length < 1 
-			|| this.contextHidden 
+        if(this.options.activeCondition){
+            if(this.options.activeCondition() === false) return this.disable();
+            else if(this.options.activeCondition() === true) this.enable();
+        }
+		if(this.contextHidden
 			|| !this.context.selection) {	
 			return;
 		}
 		var userSelection = arguments[0];		
-		var bSelection = false;
+		var hasRoot = false;
 		if(userSelection != null) 
 		{			
-			bSelection = !userSelection.isEmpty();
+			hasRoot = userSelection.selectionHasRootNode();
 			var bUnique = userSelection.isUnique();
 			var bFile = userSelection.hasFile();
 			var bDir = userSelection.hasDir();
@@ -298,7 +308,13 @@ Class.create("Action", {
                 return;
             }
         }
+        if(!selectionContext.enableRoot && hasRoot){
+            return this.disable();
+        }
 		if(selectionContext.unique && !bUnique){
+			return this.disable();
+		}
+		if(selectionContext.multipleOnly && bUnique){
 			return this.disable();
 		}
 		if((selectionContext.file || selectionContext.dir) && !bFile && !bDir){
@@ -319,9 +335,23 @@ Class.create("Action", {
 			if(selectionContext.behaviour == 'hidden') return this.hide();
 			else return this.disable();
 		}
+        if(selectionContext.allowedMimes.size() && userSelection && Object.toJSON(selectionContext.allowedMimes).indexOf("^") !== -1){
+            var forbiddenValueFound = false;
+            selectionContext.allowedMimes.each(function(m){
+                if(m.indexOf("^") == -1) return;
+                if(userSelection.hasMime([m.replace("^", "")])){
+                    forbiddenValueFound = true;
+                    throw $break;
+                }
+            });
+            if(forbiddenValueFound){
+                if(selectionContext.behaviour == 'hidden') return this.hide();
+       			else return this.disable();
+            }
+        }
 		this.show();
 		this.enable();
-		
+
 	},
 		
 	/**
@@ -345,9 +375,10 @@ Class.create("Action", {
 					this.defaults[att.key] = true;
 				}
 			}.bind(this));
+            var j;
 			if(node.nodeName == "processing"){
                 var clientFormData = {};
-				for(var j=0; j<node.childNodes.length; j++){
+				for(j=0; j<node.childNodes.length; j++){
 					var processNode = node.childNodes[j];
 					if(processNode.nodeName == "clientForm"){
                         if(!processNode.getAttribute("theme") || window.ajxpBootstrap.parameters.get('theme') == processNode.getAttribute("theme") ){
@@ -365,6 +396,8 @@ Class.create("Action", {
 						}
 					}else if(processNode.nodeName == "clientListener" && processNode.firstChild){						
 						this.options.listeners[processNode.getAttribute('name')] = '<script>'+processNode.firstChild.nodeValue+'</script>';
+					}else if(processNode.nodeName == "activeCondition" && processNode.firstChild){
+						this.options.activeCondition = new Function(processNode.firstChild.nodeValue.strip());
 					}
 				}
                 if(clientFormData.formId){
@@ -386,7 +419,7 @@ Class.create("Action", {
 				if(node.getAttribute('specialAccessKey')){
 					this.options.specialAccessKey = node.getAttribute('specialAccessKey');
 				}
-				for(var j=0; j<node.childNodes.length;j++){
+				for(j=0; j<node.childNodes.length;j++){
 					if(node.childNodes[j].nodeName == "context"){
 						this.attributesToObject(this.context, node.childNodes[j]);
 						if(this.context.ajxpWidgets){
@@ -413,7 +446,7 @@ Class.create("Action", {
 				if(node.getAttribute("updateTitleOnSelect") && node.getAttribute("updateTitleOnSelect") == "true"){
 					this.options.subMenuUpdateTitle = true;
 				}
-				for(var j=0;j<node.childNodes.length;j++){
+				for(j=0;j<node.childNodes.length;j++){
 					if(node.childNodes[j].nodeName == "staticItems" || node.childNodes[j].nodeName == "dynamicItems"){
 						this.subMenuItems[node.childNodes[j].nodeName] = [];
 						for(var k=0;k<node.childNodes[j].childNodes.length;k++){
@@ -421,7 +454,7 @@ Class.create("Action", {
 								var item = {};
 								for(var z=0;z<node.childNodes[j].childNodes[k].attributes.length;z++){
 									var attribute = node.childNodes[j].childNodes[k].attributes[z];
-									item[attribute.nodeName] = attribute.nodeValue;
+									item[attribute.nodeName] = attribute.value;
 								}
 								this.subMenuItems[node.childNodes[j].nodeName].push(item);
 							}
@@ -462,7 +495,7 @@ Class.create("Action", {
 					image:resolveImageSource(item.src, '/images/actions/ICON_SIZE', 22),
                     icon_class:item.icon_class,
 					isDefault:(item.isDefault?true:false),
-					callback:function(e){this.apply([item]);}.bind(this)
+					callback:function(){this.apply([item]);}.bind(this)
 				});
 			}, this);
 		}
@@ -474,14 +507,15 @@ Class.create("Action", {
 	 */
 	prepareSubmenuDynamicBuilder : function(){		
 		this.subMenuItems.dynamicBuilder = function(protoMenu){
-			setTimeout(function(){
+            var menuItems;
+            setTimeout(function(){
 				if(this.subMenuItems.dynamicBuilderCode){
 					window.builderContext = this;
                     window.builderProtoMenu = protoMenu;
 					this.subMenuItems.dynamicBuilderCode.evalScripts();
-					var menuItems = this.builderMenuItems || [];					
+					menuItems = this.builderMenuItems || [];
 				}else{
-			  		var menuItems = [];
+			  		menuItems = [];
 			  		this.subMenuItems.dynamicItems.each(function(item){
                         if(item.separator){
                             menuItems.push(item);
@@ -494,7 +528,7 @@ Class.create("Action", {
 							alt:action.options.title,
                             icon_class:action.options.icon_class,
 							image:resolveImageSource(action.options.src, '/images/actions/ICON_SIZE', 16),						
-							callback:function(e){this.apply();}.bind(action)
+							callback:function(){this.apply();}.bind(action)
 						};
                         if(action.options.subMenu){
                             itemData.subMenu = [];
@@ -517,6 +551,7 @@ Class.create("Action", {
 	/**
 	 * Refresh icon image source
 	 * @param newSrc String The image source. Can reference an image library
+     * @param iconClass String Optional class to replace image
 	 */
 	setIconSrc : function(newSrc, iconClass){
 		this.options.src = newSrc;
@@ -569,7 +604,6 @@ Class.create("Action", {
 	 * Grab its label from the i18n MessageHash
 	 */
 	refreshFromI18NHash : function(){
-		var text; var title;
 		this.setLabel(this.options.text_id, this.options.title_id);
 	},
 	
@@ -582,7 +616,7 @@ Class.create("Action", {
 	},
 	
 	/**
-	 * Return necessary data to buid contextual menu
+	 * Return necessary data to build contextual menu
 	 * @returns Hash
 	 */
 	toContextMenu:function(){
@@ -601,8 +635,11 @@ Class.create("Action", {
 	 * Changes show/hide state
 	 */
 	showForContext: function(){
-		this.show();
-		this.contextHidden = false;
+        this.contextHidden = false;
+        this.show();
+        if(this.selectionContext){
+            this.fireSelectionChange();
+        }
 	},
 	
 	/**
@@ -649,7 +686,7 @@ Class.create("Action", {
 		this.elements.each(function(el){
 			$(el).remove();
 		}.bind(this));		
-		this.elements = new Array();
+		this.elements = $A();
 		if(this.options.formId && $('all_forms').select('[id="'+this.options.formId+'"]').length){
 			$('all_forms').select('[id="'+this.options.formId+'"]')[0].remove();
 		}
@@ -681,7 +718,7 @@ Class.create("Action", {
 			// case differ
 			accessKey = displayString.charAt(keyPos);
 		}
-		returnString = displayString.substring(0,displayString.indexOf(accessKey));
+		var returnString = displayString.substring(0,displayString.indexOf(accessKey));
 		returnString += '<u>'+accessKey+'</u>';
 		returnString += displayString.substring(displayString.indexOf(accessKey)+1, displayString.length);
 		return returnString;
@@ -704,7 +741,7 @@ Class.create("Action", {
 	attributesToObject: function(object, node){
 		Object.keys(object).each(function(key){
 			if(node.getAttribute(key)){
-				value = node.getAttribute(key);
+				var value = node.getAttribute(key);
 				if(value == 'true') value = true;
 				else if(value == 'false') value = false;
 				if(key == 'allowedMimes'){

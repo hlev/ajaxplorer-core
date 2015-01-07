@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 Class.create("PluginEditor", AbstractEditor, {
 
@@ -25,34 +25,51 @@ Class.create("PluginEditor", AbstractEditor, {
     infoPane: null,
     docPane: null,
 
-    initialize: function($super, oFormObject)
+    initialize: function($super, oFormObject, editorOptions)
     {
-        $super(oFormObject, {fullscreen:false});
-        fitHeightToBottom(this.element.down("#pluginTabulator"), this.element.up(".dialogBox"));
+        editorOptions = Object.extend({
+            fullscreen:false
+        }, editorOptions);
+        $super(oFormObject, editorOptions);
+        fitHeightToBottom(this.element.down("#pluginTabulator"));
         this.contentMainContainer = this.element.down("#pluginTabulator");
         // INIT TAB
         var infoPane = this.element.down("#pane-infos");
         var docPane = this.element.down("#pane-docs");
-
+        var oElement = this.element;
+        if(editorOptions.context.__className == 'Modal') {
+            oElement = null;
+        }
         infoPane.setStyle({position:"relative"});
         infoPane.resizeOnShow = function(tab){
-            fitHeightToBottom(infoPane, $("plugin_edit_box"));
-        }
+            fitHeightToBottom(infoPane, oElement, Prototype.Browser.IE ? 40 : 0);
+        };
         docPane.resizeOnShow = function(tab){
-            fitHeightToBottom(docPane, $("plugin_edit_box"));
-        }
+            fitHeightToBottom(docPane, oElement, Prototype.Browser.IE ? 40 : 0);
+        };
         this.tab = new AjxpSimpleTabs(oFormObject.down("#pluginTabulator"));
         this.actions.get("saveButton").observe("click", this.save.bind(this) );
-        modal.setCloseValidation(function(){
-            if(this.isDirty()){
-                var confirm = window.confirm(MessageHash["ajxp_role_editor.19"]);
-                if(!confirm) return false;
-            }
-            return true;
-        }.bind(this) );
+        if(!modal._editorOpener) {
+            modal.setCloseValidation(this.validateClose.bind(this));
+            modal.setCloseAction(function(){
+                this.formManager.destroyForm(this.infoPane.down("div.driver_form"));
+            }.bind(this));
+        }
         oFormObject.down(".action_bar").select("a").invoke("addClassName", "css_gradient");
         this.infoPane = infoPane;
         this.docPane = docPane;
+    },
+
+    destroy: function(){
+        this.formManager.destroyForm(this.infoPane.down("div.driver_form"));
+    },
+
+    validateClose: function(){
+        if(this.isDirty()){
+            var confirm = window.confirm(MessageHash["ajxp_role_editor.19"]);
+            if(!confirm) return false;
+        }
+        return true;
     },
 
     save : function(){
@@ -83,7 +100,7 @@ Class.create("PluginEditor", AbstractEditor, {
     open : function($super, node){
         $super(node);
         this.pluginId = getBaseName(node.getMetadata().get("plugin_id"));
-        this.element.down("span.header_label").update(node.getMetadata().get("text"));
+        this.updateTitle(node.getMetadata().get("text"));
         var icon = resolveImageSource(node.getIcon(), "/images/mimes/64");
         this.element.down("span.header_label").setStyle(
             {
@@ -95,6 +112,10 @@ Class.create("PluginEditor", AbstractEditor, {
         this.loadPluginConfig();
     },
 
+    updateTitle: function(label){
+        this.element.down("span.header_label").update("<span class='icon-puzzle-piece'></span> " + label);
+        this.element.fire("editor:updateTitle", "<span class='icon-puzzle-piece'></span> " + label);
+    },
 
     loadPluginConfig : function(){
         var params = new Hash();
@@ -137,12 +158,13 @@ Class.create("PluginEditor", AbstractEditor, {
                 driverParamsHash.push(hashedParams);
             }
             var form = new Element('div', {className:'driver_form'});
+
             if(documentation){
                 var docDiv = new Element('div', {style:'height:100%;'}).insert("<div class='documentation'>" + documentation.firstChild.nodeValue + "</div>");
                 docDiv.select('img').each(function(img){
                     img.setStyle({width:'220px'});
                     img.setAttribute('src', 'plugins/'+ this.pluginId+'/'+img.getAttribute('src'));
-                });
+                }.bind(this));
                 this.docPane.insert({bottom:docDiv});
 
                 var pluginfo = docDiv.down("ul.pluginfo_list");
@@ -156,9 +178,11 @@ Class.create("PluginEditor", AbstractEditor, {
             }
 
             this.infoPane.insert({bottom:form});
+            form.ajxpPaneObject = this;
 
             if(driverParamsHash.size()){
                 this.formManager.createParametersInputs(form, driverParamsHash, true, (paramsValues.size()?paramsValues:null));
+                this.formManager.disableShortcutsOnForm(form);
             }else{
                 form.update(MessageHash['ajxp_conf.105']);
             }
@@ -170,10 +194,8 @@ Class.create("PluginEditor", AbstractEditor, {
                 toggles.invoke("removeClassName", "accordion_toggle_active");
                 toggles.invoke("addClassName", "innerTitle");
             }
-            form.select("div.SF_element").each(function(element){
-                element.select("input,textarea,select").invoke("observe", "change", this.setDirty.bind(this));
-                element.select("input,textarea").invoke("observe", "keydown", this.setDirty.bind(this));
-            }.bind(this) );
+            this.formManager.observeFormChanges(form, this.setDirty.bind(this));
+
 
             ajaxplorer.blurAll();
         }.bind(this);
@@ -188,11 +210,11 @@ Class.create("PluginEditor", AbstractEditor, {
      */
     resize : function(size){
         if(size){
-            this.contentMainContainer.setStyle({height:size+"px"});
+            this.contentMainContainer.setStyle({height:(size - parseInt(this.element.down('.editor_header').getHeight())) +"px"});
         }else{
             fitHeightToBottom(this.contentMainContainer, this.element.up(".dialogBox"));
-            this.tab.resize();
         }
+        this.tab.resize();
         this.element.fire("editor:resize", size);
     },
 
@@ -224,7 +246,8 @@ Class.create("PluginEditor", AbstractEditor, {
 
     mergeObjectsRecursive : function(source, destination){
         var newObject = {};
-        for (var property in source) {
+        var property;
+        for (property in source) {
             if (source.hasOwnProperty(property)) {
                 if( source[property] === null ) continue;
                 if( destination.hasOwnProperty(property)){
@@ -242,7 +265,7 @@ Class.create("PluginEditor", AbstractEditor, {
                 }
             }
         }
-        for (var property in destination){
+        for (property in destination){
             if(destination.hasOwnProperty(property) && !newObject.hasOwnProperty(property) && destination[property]!==null){
                 if(destination[property] instanceof Object) {
                     newObject[property] = this.mergeObjectsRecursive(destination[property], {});

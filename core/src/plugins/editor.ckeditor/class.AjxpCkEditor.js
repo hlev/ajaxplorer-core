@@ -1,27 +1,31 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 Class.create("AjxpCkEditor", TextEditor, {
 
-	initialize: function($super, oFormObject)
+    editorInstanceId:null,
+
+	initialize: function($super, oFormObject, options)
 	{
-		$super(oFormObject);
+		$super(oFormObject, options);
+        window.CKEDITOR_BASEPATH = CKEDITOR.basePath = getUrlFromBase() +"plugins/editor.ckeditor/ckeditor/";
+
 		this.editorConfig = {
 			resize_enabled:false,
 			toolbar : "Ajxp",
@@ -78,35 +82,37 @@ Class.create("AjxpCkEditor", TextEditor, {
 		this.inputNode = node;
 		var fileName = node.getPath();
 		var textarea;
+        this.editorInstanceId = slugString(node.getPath());
+
 		this.textareaContainer = new Element('div');
 		this.textarea = new Element('textarea');
-		this.textarea.name =  this.textarea.id = 'content';
+		this.textarea.name =  this.textarea.id = this.editorInstanceId;
 		this.contentMainContainer = this.textareaContainer;
 		this.textarea.setStyle({width:'100%'});	
 		this.textarea.setAttribute('wrap', 'off');	
 		this.element.insert(this.textareaContainer);
 		this.textareaContainer.appendChild(this.textarea);
-		fitHeightToBottom(this.textareaContainer, $(modal.elementName));
-		this.reloadEditor('content');
+		//fitHeightToBottom(this.textareaContainer, $(modal.elementName));
+		this.reloadEditor(this.editorInstanceId);
 		this.element.observe("editor:close", function(){
-			CKEDITOR.instances.content.destroy();
-		});		
+			CKEDITOR.instances[this.editorInstanceId].destroy();
+        }.bind(this));
 		this.element.observe("editor:resize", function(event){
 			this.resizeEditor();
 		}.bind(this));
 		var destroy = function(){
-			if(CKEDITOR.instances.content){
-				this.textarea.value = CKEDITOR.instances.content.getData();
-				CKEDITOR.instances.content.destroy();			
+			if(CKEDITOR.instances[this.editorInstanceId]){
+				this.textarea.value = CKEDITOR.instances[this.editorInstanceId].getData();
+				CKEDITOR.instances[this.editorInstanceId].destroy();
 			}				
-		};
+        }.bind(this);
 		var reInit  = function(){
-			CKEDITOR.replace('content', this.editorConfig);
+			CKEDITOR.replace(this.editorInstanceId, this.editorConfig);
 			window.setTimeout(function(){
 				this.resizeEditor();
 				this.bindCkEditorEvents();								
 			}.bind(this), 100);
-		}
+        }.bind(this);
 		this.element.observe("editor:enterFS", destroy.bind(this));
 		this.element.observe("editor:enterFSend", reInit.bind(this));
 		this.element.observe("editor:exitFS", destroy.bind(this));
@@ -118,15 +124,14 @@ Class.create("AjxpCkEditor", TextEditor, {
 		if(window.ajxpMobile){
 			this.setFullScreen();
 		}
-		return;
-		
+
 	},
 	
 	bindCkEditorEvents : function(){
 		if(this.isModified) return;// useless
 		
 		window.setTimeout(function(){
-			var editor = CKEDITOR.instances.content;
+			var editor = CKEDITOR.instances[this.editorInstanceId];
 			if(!editor) {
 				return;
 			}
@@ -168,16 +173,16 @@ Class.create("AjxpCkEditor", TextEditor, {
 	},
 	
 	resizeEditor : function(){
-		var width = this.contentMainContainer.getWidth()-(Prototype.Browser.IE?0:12);		
-		var height = this.contentMainContainer.getHeight();
-		if(CKEDITOR.instances.content){
-			CKEDITOR.instances.content.resize(width,height);
+		if(CKEDITOR.instances[this.editorInstanceId] && CKEDITOR.instances[this.editorInstanceId].container){
+            var width = this.contentMainContainer.getWidth();
+            var height = this.contentMainContainer.getHeight();
+            CKEDITOR.instances[this.editorInstanceId].resize(width,height);
 		}
 	},
 			
 	saveFile : function(){
 		var connexion = this.prepareSaveConnexion();
-		var value = CKEDITOR.instances.content.getData();
+		var value = CKEDITOR.instances[this.editorInstanceId].getData();
 		this.textarea.value = value;		
 		connexion.addParameter('content', value);
 		connexion.sendAsync();
@@ -185,7 +190,7 @@ Class.create("AjxpCkEditor", TextEditor, {
 		
 	parseTxt : function(transport){	
 		this.textarea.value = transport.responseText;
-		CKEDITOR.instances.content.setData(transport.responseText);
+		CKEDITOR.instances[this.editorInstanceId].setData(transport.responseText);
 		this.removeOnLoad(this.textareaContainer);
 		this.setModified(false);
 	}

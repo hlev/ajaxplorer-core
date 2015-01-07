@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 /**
@@ -73,6 +73,8 @@ Class.create("User", {
      */
     lock : false,
 
+    _parsedJSONCache: $H(),
+
 	/**
 	 * Constructor
 	 * @param id String The user unique id
@@ -96,8 +98,8 @@ Class.create("User", {
 	 */
 	setActiveRepository : function (id, read, write){
 		this.activeRepository = id;
-		this.read = (read=="1"?true:false);
-		this.write = (write=="1"?true:false);		
+		this.read = (read == "1");
+		this.write = (write == "1");
 		if(this.repositories.get(id)){
 			this.crossRepositoryCopy = this.repositories.get(id).allowCrossRepositoryCopy;
 		}
@@ -141,11 +143,17 @@ Class.create("User", {
 	 * @returns Mixed
 	 */
 	getPreference : function(prefName, fromJSON){
-	    var value = this.preferences.get(prefName);	
+        if(fromJSON){
+            var test = this._parsedJSONCache.get(prefName);
+            if(test !== undefined) return test;
+        }
+	    var value = this.preferences.get(prefName);
 	    if(fromJSON && value){
 	    	try{
                 if(typeof value == "object") return value;
-		    	return value.evalJSON();
+		    	var parsed = value.evalJSON();
+                this._parsedJSONCache.set(prefName, parsed);
+                return parsed;
 	    	}catch(e){
                 if(console){
                     console.log("Error parsing JSON in preferences ("+prefName+"). You should contact system admin and clear user preferences.");
@@ -173,6 +181,7 @@ Class.create("User", {
 	 */
 	setPreference : function(prefName, prefValue, toJSON){
 		if(toJSON){
+            this._parsedJSONCache.unset(prefName);
 			prefValue = Object.toJSON(prefValue);
 		}
 		this.preferences.set(prefName, prefValue);
@@ -269,7 +278,8 @@ Class.create("User", {
 	loadFromXml: function(userNodes){
 	
 		var repositories = new Hash();
-		for(var i=0; i<userNodes.length;i++)
+        var i,j;
+		for(i=0; i<userNodes.length;i++)
 		{
 			if(userNodes[i].nodeName == "active_repo")
 			{

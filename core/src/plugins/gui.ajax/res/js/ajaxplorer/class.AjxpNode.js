@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 /**
@@ -41,7 +41,7 @@ Class.create("AjxpNode", {
 		this._isLeaf = isLeaf || false;
 		this._label = label || '';
 		this._icon = icon || '';
-		this._children = $A([]);
+		this._children = $H();
 		this._isRoot = false;
 		
 		this._isLoaded = false;
@@ -95,8 +95,11 @@ Class.create("AjxpNode", {
 	 * @param iAjxpNodeProvider IAjxpNodeProvider Optionnal
 	 */
 	reload : function(iAjxpNodeProvider){
-		this._children.each(function(child){
-			this.removeChild(child);
+		this._children.each(function(pair){
+            pair.value.notify("node_removed");
+            pair.value._parentNode = null;
+            this._children.unset(pair.key);
+            this.notify("child_removed", pair.value);
 		}.bind(this));
 		this._isLoaded = false;		
 		this.load(iAjxpNodeProvider);
@@ -105,8 +108,11 @@ Class.create("AjxpNode", {
 	 * Unload child and notify "force_clear"
 	 */
 	clear : function(){
-		this._children.each(function(child){
-			this.removeChild(child);
+		this._children.each(function(pair){
+            pair.value.notify("node_removed");
+            pair.value._parentNode = null;
+            this._children.unset(pair.key);
+            this.notify("child_removed", pair.value);
 		}.bind(this));
 		this._isLoaded = false;		
 		this.notify("force_clear");
@@ -122,15 +128,18 @@ Class.create("AjxpNode", {
 	 * @param ajxpNodes AjxpNodes[]
 	 */
 	setChildren : function(ajxpNodes){
-		this._children = $A(ajxpNodes);
-		this._children.invoke('setParent', this);
+		this._children = $H();
+        $A(ajxpNodes).each(function(n){
+            this._children.set(n.getPath(), n);
+            n.setParent(this);
+        }.bind(this));
 	},
 	/**
 	 * Get all children as a bunch
 	 * @returns AjxpNode[]
 	 */
 	getChildren : function(){
-		return this._children;
+		return this._children.values();
 	},
 	/**
 	 * Adds a child to children
@@ -143,7 +152,7 @@ Class.create("AjxpNode", {
 		if(existingNode && !Object.isString(existingNode)){
 			existingNode.replaceBy(ajxpNode, "override");
 		}else{			
-			this._children.push(ajxpNode);
+			this._children.set(ajxpNode.getPath(), ajxpNode);
 			this.notify("child_added", ajxpNode.getPath());
 		}
 	},
@@ -155,17 +164,25 @@ Class.create("AjxpNode", {
 		var removePath = ajxpNode.getPath();
 		ajxpNode.notify("node_removed");
         ajxpNode._parentNode = null;
-		this._children = this._children.without(ajxpNode);
+		this._children.unset(ajxpNode.getPath());
 		this.notify("child_removed", removePath);
 	},
-	/**
-	 * Replaces the current node by a new one. Copy all properties deeply
-	 * @param ajxpNode AjxpNode
-	 */
+
+    /**
+     * Replaces the current node by a new one. Copy all properties deeply
+     * @param ajxpNode AjxpNode
+     * @param metaMerge
+     */
 	replaceBy : function(ajxpNode, metaMerge){
 		this._isLeaf = ajxpNode._isLeaf;
         if(ajxpNode.getPath() && this._path != ajxpNode.getPath()){
+            var originalPath = this._path;
+            // Update parent path key!
+            var parentChildrenIndex = this.getParent()._children;
+            parentChildrenIndex.set(ajxpNode.getPath(), this);
+            parentChildrenIndex.unset(originalPath, ajxpNode);
             this._path = ajxpNode.getPath();
+            var pathChanged = true;
         }
 		if(ajxpNode._label){
 			this._label = ajxpNode._label;
@@ -176,12 +193,9 @@ Class.create("AjxpNode", {
 		if(ajxpNode._iNodeProvider){
 			this._iNodeProvider = ajxpNode._iNodeProvider;
 		}
-		this._isRoot = ajxpNode._isRoot;
+		//this._isRoot = ajxpNode._isRoot;
 		this._isLoaded = ajxpNode._isLoaded;
 		this.fake = ajxpNode.fake;
-		ajxpNode.getChildren().each(function(child){
-			this.addChild(child);
-		}.bind(this) );		
 		var meta = ajxpNode.getMetadata();
         if(metaMerge == "override") this._metadata = $H();
 		meta.each(function(pair){
@@ -194,7 +208,16 @@ Class.create("AjxpNode", {
                 this._metadata.set(pair.key, pair.value);
             }
 		}.bind(this) );
-		this.notify("node_replaced", this);		
+        if(pathChanged && !this._isLeaf && this.getChildren().length){
+            window.setTimeout(function(){
+                this.reload(this._iNodeProvider);
+            }.bind(this), 100);
+            return;
+        }
+        ajxpNode.getChildren().each(function(child){
+            this.addChild(child);
+        }.bind(this) );
+        this.notify("node_replaced", this);
 	},
 	/**
 	 * Finds a child node by its path
@@ -202,9 +225,7 @@ Class.create("AjxpNode", {
 	 * @returns AjxpNode
 	 */
 	findChildByPath : function(path){
-		return $A(this._children).find(function(child){
-			return (child.getPath() == path);
-		});
+        return this._children.get(path);
 	},
 	/**
 	 * Sets the metadata as a bunch
@@ -270,12 +291,13 @@ Class.create("AjxpNode", {
 			crt = parent;
 		}
 		return false;
-	},	
-	/**
-	 * Search the mime type in the parent branch
-	 * @param ajxpMime String
-	 * @returns Boolean
-	 */
+	},
+    /**
+     * Search the mime type in the parent branch
+     * @returns Boolean
+     * @param metadataKey
+     * @param metadataValue
+     */
 	hasMetadataInBranch: function(metadataKey, metadataValue){
 		if(this.getMetadata().get(metadataKey)) {
             if(metadataValue) {
@@ -315,11 +337,11 @@ Class.create("AjxpNode", {
 	 * Finds this node by path if it already exists in arborescence 
 	 * @param rootNode AjxpNode
 	 * @param fakeNodes AjxpNode[]
+     * @returns AjxpNode|undefined
 	 */
 	findInArbo : function(rootNode, fakeNodes){
 		if(!this.getPath()) return;
 		var pathParts = this.getPath().split("/");
-		var parentNodes = $A();
 		var crtPath = "";
 		var crtNode, crtParentNode = rootNode;
 		for(var i=0;i<pathParts.length;i++){
@@ -329,9 +351,10 @@ Class.create("AjxpNode", {
 			if(node && !Object.isString(node)){
 				crtNode = node;
 			}else{
-                if(fakeNodes === undefined) return false;
+                if(fakeNodes === undefined) return undefined;
 				crtNode = new AjxpNode(crtPath, false, getBaseName(crtPath));
-				crtNode.fake = true;				
+				crtNode.fake = true;
+                crtNode.getMetadata().set("text", getBaseName(crtPath));
 				fakeNodes.push(crtNode);
 				crtParentNode.addChild(crtNode);
 			}

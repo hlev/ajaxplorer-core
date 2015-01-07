@@ -1,6 +1,23 @@
-/**
-@todo : I18N THIS STRING
+/*
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
+ *
+ * Pydio is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Pydio is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * The latest code can be found at <http://pyd.io/>.
  */
+
 webFXTreeConfig.loadingText = "Loading...";
 
 function splitOverlayIcons(ajxpNode){
@@ -10,6 +27,11 @@ function splitOverlayIcons(ajxpNode){
         ret.push(resolveImageSource(el, "/images/overlays/ICON_SIZE", 8));
     });
     return ret;
+}
+
+function splitOverlayClasses(ajxpNode){
+    if(!ajxpNode.getMetadata().get("overlay_class")  || ! window.ajaxplorer.currentThemeUsesIconFonts) return false;
+    return ajxpNode.getMetadata().get("overlay_class").split(",");
 }
 
 function AJXPTree(rootNode, sAction, filter) {
@@ -38,13 +60,14 @@ function AJXPTree(rootNode, sAction, filter) {
 		this.filter = filter;
  	}
     this.overlayIcon = splitOverlayIcons(rootNode);
+    this.overlayClasses = splitOverlayClasses(rootNode);
 
-	this._loadingItem = new WebFXTreeItem(webFXTreeConfig.loadingText);		
+	this._loadingItem = new WebFXTreeItem(MessageHash?MessageHash[466]:webFXTreeConfig.loadingText);
 	if(this.open) this.ajxpNode.load();
 	else{
 		this.add(this._loadingItem);
 	}
-};
+}
 
 AJXPTree.prototype = new WebFXTree;
 
@@ -87,7 +110,9 @@ AJXPTree.prototype.attachListeners = function(jsNode, ajxpNode){
 			if(!this.paginated){
 				this.paginated = true;
 				if(pData.get('dirsCount')!="0"){
-					this.updateLabel(this.text + " (" + MessageHash[pData.get('overflowMessage')]+ ")");
+                    var message = pData.get('overflowMessage');
+                    if(MessageHash[message]) message = MessageHash[message];
+					this.updateLabel(this.text + " (" + message+ ")");
 				}
 			}
 			//return;
@@ -113,6 +138,7 @@ AJXPTree.prototype.attachListeners = function(jsNode, ajxpNode){
 			}
 			jsNode.updateIcon(ic, oic);
             jsNode.overlayIcon = splitOverlayIcons(ajxpNode);
+            jsNode.overlayClasses = splitOverlayClasses(ajxpNode);
 		}
 		if(jsNode.updateLabel) jsNode.updateLabel(ajxpNode.getLabel());
 	}.bind(jsNode));
@@ -157,21 +183,22 @@ function AJXPTreeItem(ajxpNode, sAction, eParent) {
         eParent,
         icon,
         (openIcon?openIcon:resolveImageSource("folder_open.png", "/images/mimes/ICON_SIZE", 16)),
-        splitOverlayIcons(ajxpNode)
+        splitOverlayIcons(ajxpNode),
+        splitOverlayClasses(ajxpNode)
     );
 
 	this.loading = false;
 	this.loaded = false;
 	this.errorText = "";
 
-	this._loadingItem = new WebFXTreeItem(webFXTreeConfig.loadingText);
+	this._loadingItem = new WebFXTreeItem(MessageHash?MessageHash[466]:webFXTreeConfig.loadingText);
 	if (this.open) {
 		this.ajxpNode.load();
 	}else{
 		this.add(this._loadingItem);
 	}
 	webFXTreeHandler.all[this.id] = this;
-};
+}
 
 AJXPTreeItem.prototype = new WebFXTreeItem;
 
@@ -210,8 +237,9 @@ function _ajxpNodeToTree(ajxpNode, parentNode) {
 				newNode.filter = jsNode.filter;
 			}
             newNode.overlayIcon = splitOverlayIcons(child);
+            newNode.overlayClasses = splitOverlayClasses(child);
 			jsNode.add( newNode , false );
 		}
 	});	
 	return jsNode;	
-};
+}

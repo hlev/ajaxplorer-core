@@ -1,26 +1,26 @@
 <?php
 /*
-* Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
-* This file is part of AjaXplorer.
+* Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+* This file is part of Pydio.
 *
-* AjaXplorer is free software: you can redistribute it and/or modify
+* Pydio is free software: you can redistribute it and/or modify
 * it under the terms of the GNU Affero General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* AjaXplorer is distributed in the hope that it will be useful,
+* Pydio is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU Affero General Public License for more details.
 *
 * You should have received a copy of the GNU Affero General Public License
-* along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+* along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
 *
-* The latest code can be found at <http://www.ajaxplorer.info/>.
+* The latest code can be found at <http://pyd.io/>.
 */
 $mess=array(
-"1" => "Editeur de Role",
-"2" => "Editeur de Role",
+"1" => "Editeur de rôle",
+"2" => "Editeur de rôle",
 "3" => "Info du compte",
 "4" => "Accès",
 "5" => "Actions",
@@ -30,9 +30,9 @@ $mess=array(
 "9" => "Sélectionnez les dépôts auxquels les utilisateurs ayant ce rôle auront accès. Utilisez la valeur 'Exclure' pour soit écraser un droit donné par un autre rôle, ou définitivement interdire l'accès à ce dépôt pour les rôles hérités.",
 "10" => "Utilisez les sélecteurs ci-dessous pour choisir les actions que vous souhaitez désactiver pour ce rôle. Ceci peut s'appliquer dépôt par dépôt ou pour tous les dépôts.",
 "11" => "Identifiant du plugin",
-"12" => "Selectionner un plugin...",
-"12a" => "Selectionner une action...",
-"12b" => "Selectionner un paramètre...",
+"12" => "Sélectionner un plugin...",
+"12a" => "Sélectionner une action...",
+"12b" => "Sélectionner un paramètre...",
 "12c" => "Choisir un ou tous les dépôts...",
 "12d" => "Tous les dépôts",
 "12e" => "Dépôts partagés",
@@ -42,10 +42,10 @@ $mess=array(
 "16" => "Utilisez les sélecteurs ci-dessous pour choisir les paramètres que vous voulez personnaliser pour le rôle. La valeur pour s'appliquer dépôt par dépôt ou pour tous les dépôts, mais ceci peut aussi dépendre des paramètres choisis.",
 "17" => "Nom du paramètre",
 "18" => "Ajouter le paramètre",
-"19" => "Il y a des changements non pris en compte, êtes-vous sûr de vouloir fermer?",
+"19" => "Il y a des changements non pris en compte, êtes-vous sûr de vouloir fermer ?",
 "20" => "Le rôle a été mis à jour",
 "21" => "ID utilisateur",
-"22" => "Profil Spécifique",
+"22" => "Profil spécifique",
 "23" => "Dépôt par défaut",
 "24" => "Rôles (utiliser les touches Ctrl/Cmd pour en sélectionner plusieurs)",
 "25" => "Changer de mot de passe",
@@ -66,4 +66,5 @@ $mess=array(
 "40" => "Activer",
 "41" => "Supprimer",
 "42" => "Données du rôle",
+"43" => "Selectionner un ou plusieurs",
 );

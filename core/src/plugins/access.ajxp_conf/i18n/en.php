@@ -1,26 +1,26 @@
 <?php
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 $mess=array(
 "1" => "Configuration Data",
-"2" => "Users",
+"2" => "Users & Groups",
 "3" => "Workspaces",
 "4" => "Logs",
 "5" => "Diagnostic",
@@ -108,8 +108,8 @@ $mess=array(
 "87" => "Successfully updated actions for this role",
 "88" => "This workspace is defined in the config file, you cannot edit its meta sources via the GUI.",
 "89" => "User specific data",
-"90" => "Repository",
-"91" => "Template",
+"90" => "New Workspace",
+"91" => "New Template",
 "92" => "Create a new template",
 "93" => "Edit",
 "94" => "Batch Edit",
@@ -117,8 +117,8 @@ $mess=array(
 "96" => "Once a label and driver selected, enable the fields you want to be prefilled in the template using the checkboxes. The other fields will be left to the user. You can enable some fields and leave them empty, if you still want to hide them from the user.",
 "repository_access_key" => "N",
 "97" => "Plugin options successfully updated",
-"98" => "Core Configs",
-"99" => "Plugins",
+"98" => "Application Core",
+"99" => "Feature plugins",
 "100" => "Common '%s' plugins options",
 "101" => "Name",
 "102" => "Identifier",
@@ -128,7 +128,7 @@ $mess=array(
 "106" => "Unique Identifier",
 "107" => "Plugin Configurations",
 "108" => "Documentation",
-"109" => "Global Configurations",
+"109" => "Application Parameters",
 "110" => "Workspaces & Users",
 "111" => "Logs & Other Data",
 "112" => "<b>Apply this role by default</b> to all new users.",
@@ -139,4 +139,13 @@ $mess=array(
 "117" => "Template Driver",
 "118" => "New group",
 "group_access" => "g",
+"119" => "Set user group",
+"120" => "Go Pro",
+"121" => "Get professional support for your install",
+"122" => "All Settings",
+"123" => "Other plugins",
+"124" => "Source",
+"125" => "Alias",
+"126" => "Are you sure that you want to delete the selected element(s)?",
+"127" => "Warning, please do not use special characters, user would be created with login id '%s'",
 );

@@ -1,22 +1,22 @@
 <?php
 /*
-* Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
-* This file is part of AjaXplorer.
+* Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+* This file is part of Pydio.
 *
-* AjaXplorer is free software: you can redistribute it and/or modify
+* Pydio is free software: you can redistribute it and/or modify
 * it under the terms of the GNU Affero General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* AjaXplorer is distributed in the hope that it will be useful,
+* Pydio is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU Affero General Public License for more details.
 *
 * You should have received a copy of the GNU Affero General Public License
-* along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+* along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
 *
-* The latest code can be found at <http://www.ajaxplorer.info/>.
+* The latest code can be found at <http://pyd.io/>.
 */
 $mess=array(
 "1" => "Role Editor",
@@ -47,7 +47,7 @@ $mess=array(
 "21" => "User ID",
 "22" => "Special Profile",
 "23" => "Default Repository",
-"24" => "Roles (use Ctrl/Cmd keys to select many)",
+"24" => "User Roles",
 "25" => "Change Password",
 "26" => "Lock out user",
 "27" => "Reactivate user",
@@ -66,4 +66,8 @@ $mess=array(
 "40" => "Enable",
 "41" => "Remove",
 "42" => "Role custom data",
+"43" => "Select one or more",
+"44" => "Plugins Parameters Fine-tuning",
+"45" => "Access Control List",
+"46" => "Disabled Actions",
 );

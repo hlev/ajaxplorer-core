@@ -1,30 +1,30 @@
 <?php
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 defined('AJXP_EXEC') or die( 'Access not allowed');
 
 /**
- * @package AjaXplorer
+ * @package Pydio
  * @subpackage SabreDav
  */
-class AJXP_Sabre_Collection extends AJXP_Sabre_Node implements Sabre_DAV_ICollection
+class AJXP_Sabre_Collection extends AJXP_Sabre_Node implements Sabre\DAV\ICollection
 {
 
     protected $children;
@@ -53,9 +53,9 @@ class AJXP_Sabre_Collection extends AJXP_Sabre_Node implements Sabre_DAV_ICollec
      * @param resource|string $data Initial payload
      * @return null|string
      */
-    function createFile($name, $data = null){
-
-        try{
+    public function createFile($name, $data = null)
+    {
+        try {
             $name = ltrim($name, "/");
             AJXP_Logger::debug("CREATE FILE $name");
 
@@ -64,16 +64,16 @@ class AJXP_Sabre_Collection extends AJXP_Sabre_Node implements Sabre_DAV_ICollec
                 "filename" => $name
             ), array());
 
-            if( $data != null && is_file($this->getUrl()."/".$name)){
+            if ( $data != null && is_file($this->getUrl()."/".$name)) {
 
                 $p = $this->path."/".$name;
                 $this->getAccessDriver()->nodeWillChange($p, intval($_SERVER["CONTENT_LENGTH"]));
-                AJXP_Logger::debug("Should now copy stream or string in ".$this->getUrl()."/".$name);
-                if(is_resource($data)){
+                //AJXP_Logger::debug("Should now copy stream or string in ".$this->getUrl()."/".$name);
+                if (is_resource($data)) {
                     $stream = fopen($this->getUrl()."/".$name, "w");
                     stream_copy_to_stream($data, $stream);
                     fclose($stream);
-                }else if(is_string($data)){
+                } else if (is_string($data)) {
                     file_put_contents($data, $this->getUrl()."/".$name);
                 }
 
@@ -82,12 +82,12 @@ class AJXP_Sabre_Collection extends AJXP_Sabre_Node implements Sabre_DAV_ICollec
 
             }
             $node = new AJXP_Sabre_NodeLeaf($this->path."/".$name, $this->repository, $this->getAccessDriver());
-            if(isSet($this->children)){
+            if (isSet($this->children)) {
                 $this->children = null;
             }
             return $node->getETag();
 
-        }catch (Exception $e){
+        } catch (Exception $e) {
             AJXP_Logger::debug("Error ".$e->getMessage(), $e->getTraceAsString());
             return null;
         }
@@ -101,9 +101,9 @@ class AJXP_Sabre_Collection extends AJXP_Sabre_Node implements Sabre_DAV_ICollec
      * @param string $name
      * @return void
      */
-    function createDirectory($name){
-
-        if(isSet($this->children)){
+    public function createDirectory($name)
+    {
+        if (isSet($this->children)) {
             $this->children = null;
         }
 
@@ -118,27 +118,28 @@ class AJXP_Sabre_Collection extends AJXP_Sabre_Node implements Sabre_DAV_ICollec
      * Returns a specific child node, referenced by its name
      *
      * @param string $name
-     * @return Sabre_DAV_INode
+     * @throws Sabre\DAV\Exception\NotFound
+     * @return Sabre\DAV\INode
      */
-    function getChild($name){
-
-        foreach($this->getChildren() as $child) {
+    public function getChild($name)
+    {
+        foreach ($this->getChildren() as $child) {
 
             if ($child->getName()==$name) return $child;
 
         }
-        throw new Sabre_DAV_Exception_NotFound('File not found: ' . $name);
+        throw new Sabre\DAV\Exception\NotFound('File not found: ' . $name);
 
     }
 
     /**
      * Returns an array with all the child nodes
      *
-     * @return Sabre_DAV_INode[]
+     * @return Sabre\DAV\INode[]
      */
-    function getChildren(){
-
-        if(isSet($this->children)) {
+    public function getChildren()
+    {
+        if (isSet($this->children)) {
             return $this->children;
         }
 
@@ -148,26 +149,26 @@ class AJXP_Sabre_Collection extends AJXP_Sabre_Node implements Sabre_DAV_ICollec
 
         $nodes = scandir($this->getUrl());
 
-        foreach ( $nodes as $file )
-        {
-            if($file == "." || $file == "..") {
+        foreach ($nodes as $file) {
+            if ($file == "." || $file == "..") {
                 continue;
             }
-            if ( !$this->repository->getOption("SHOW_HIDDEN_FILES") && AJXP_Utils::isHidden($file)){
+            if ( !$this->repository->getOption("SHOW_HIDDEN_FILES") && AJXP_Utils::isHidden($file)) {
                 continue;
             }
-            if ( is_dir( $this->getUrl() . "/" . $file ) )
-            {
+            if ( is_dir( $this->getUrl() . "/" . $file ) ) {
                 // Add collection without any children
                 $contents[] = new AJXP_Sabre_Collection($this->path."/".$file, $this->repository, $this->getAccessDriver());
-            }
-            else
-            {
+            } else {
                 // Add files without content
                 $contents[] = new AJXP_Sabre_NodeLeaf($this->path."/".$file, $this->repository, $this->getAccessDriver());
             }
         }
         $this->children = $contents;
+
+        $ajxpNode = new AJXP_Node($this->getUrl());
+        AJXP_Controller::applyHook("node.read", array(&$ajxpNode));
+
         return $contents;
 
     }
@@ -178,9 +179,9 @@ class AJXP_Sabre_Collection extends AJXP_Sabre_Node implements Sabre_DAV_ICollec
      * @param string $name
      * @return bool
      */
-    function childExists($name){
-
-        foreach($this->getChildren() as $child) {
+    public function childExists($name)
+    {
+        foreach ($this->getChildren() as $child) {
 
             if ($child->getName()==$name) return true;
 

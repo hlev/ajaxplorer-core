@@ -1,42 +1,46 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 /**
  * Toolbar to display actions buttons
  */
-Class.create("ActionsToolbar", {
+Class.create("ActionsToolbar", AjxpPane, {
 	__implements : "IAjxpWidget",
 	/**
 	 * Constructor
+     * @param $super Function Parent constructor
 	 * @param oElement Element The dom node
 	 * @param options Object The toolbar options. Contains a buttonRenderer and a toolbarsList array.
 	 */
-	initialize : function(oElement, options){
+	initialize : function($super, oElement, options){
+        $super(oElement, options);
 		this.element = oElement;		
 		this.element.ajxpPaneObject = this;
 		this.options = Object.extend({
 			buttonRenderer : 'this',
-            skipBubbling: false,
+            skipBubbling: true,
 			toolbarsList : $A(['default', 'put', 'get', 'change', 'user', 'remote']),
             groupOtherToolbars : $A([]),
-            skipCarousel : false
+            skipCarousel : true,
+            manager:null,
+            dataModelElementId:null
 		}, options || {});
 		var renderer = this.options.buttonRenderer;
 		if(renderer == 'this'){
@@ -51,23 +55,39 @@ Class.create("ActionsToolbar", {
         if(this.options.styles){
             this.buildActionBarStylingMenu();
             this.style = this.options.defaultStyle;
-            document.observe("ajaxplorer:user_logged", function(){
+            this.styleObserver = function(){
                 if(ajaxplorer.user && ajaxplorer.user.getPreference("action_bar_style")){
                     this.style = ajaxplorer.user.getPreference("action_bar_style");
                 }else{
                     this.style = this.options.defaultStyle;
                 }
                 this.switchStyle(false, true);
-            }.bind(this));
+            }.bind(this);
+            document.observe("ajaxplorer:user_logged", this.styleObserver);
         }
 		attachMobileScroll(oElement.id, "horizontal");
-		document.observe("ajaxplorer:actions_loaded", this.actionsLoaded.bind(this));
-		document.observe("ajaxplorer:actions_refreshed", this.refreshToolbarsSeparator.bind(this));
+
+        this.actionsLoadedObserver = this.actionsLoaded.bind(this);
+        this.refreshToolbarObserver = this.refreshToolbarsSeparator.bind(this);
         this.componentConfigHandler = function(event){
             if(event.memo.className == "ActionsToolbar"){
                 this.parseComponentConfig(event.memo.classConfig.get('all'));
             }
         }.bind(this);
+
+        if(this.options.manager){
+            this.options.manager.observe("actions_loaded", this.actionsLoadedObserver);
+            this.options.manager.observe("actions_refreshed", this.refreshToolbarObserver);
+
+        }else if(this.options.dataModelElementId){
+            this.options.manager = new ActionsManager(true, this.options.dataModelElementId);
+            this.options.manager.observe("actions_loaded", this.actionsLoadedObserver);
+            this.options.manager.observe("actions_refreshed", this.refreshToolbarObserver);
+            this.actionsLoaded(null);
+        }else{
+            document.observe("ajaxplorer:actions_loaded", this.actionsLoadedObserver);
+            document.observe("ajaxplorer:actions_refreshed", this.refreshToolbarObserver);
+        }
         document.observe("ajaxplorer:component_config_changed", this.componentConfigHandler );
 
 	},
@@ -77,14 +97,22 @@ Class.create("ActionsToolbar", {
 	},
 	destroy : function(){
 		this.emptyToolbars();
-
+        if(this.options.manager){
+            this.options.manager.stopObserving("actions_loaded", this.actionsLoadedObserver);
+            this.options.manager.stopObserving("actions_refreshed", this.refreshToolbarObserver);
+            this.options.manager.destroy();
+        }else{
+            document.stopObserving("ajaxplorer:actions_loaded", this.actionsLoadedObserver);
+            document.stopObserving("ajaxplorer:actions_refreshed", this.refreshToolbarObserver);
+        }
+        document.stopObserving("ajaxplorer:component_config_changed", this.componentConfigHandler );
+        if(this.styleObserver) document.stopObserving("ajaxplorer:user_logged", this.styleObserver);
 	},
 
     /**
      * Apply the config of a component_config node
      * Returns true if the GUI needs refreshing
      * @param domNode XMLNode
-     * @returns Boolean
      */
     parseComponentConfig : function(domNode){
         var config = XPathSelectSingleNode(domNode, 'property[@name="style"]');
@@ -101,9 +129,15 @@ Class.create("ActionsToolbar", {
 	 * @param event Event ajaxplorer:actions_loaded
 	 */
 	actionsLoaded : function(event) {
-		this.actions = event.memo;
+        if(event && event.memo) {
+            this.actions = event.memo;
+        } else if(this.options.manager) {
+            this.actions = this.options.manager.actions;
+        }
 		this.emptyToolbars();
-		this.initToolbars();
+        if(this.actions){
+            this.initToolbars();
+        }
 	},
 	
 	/**
@@ -118,7 +152,7 @@ Class.create("ActionsToolbar", {
 			if(action.context.actionBar){
                 $A(action.context.actionBarGroup.split(",")).each(function(barGroup){
                     if(this.toolbars.get(barGroup) == null){
-                        this.toolbars.set(barGroup, new Array());
+                        this.toolbars.set(barGroup, []);
                     }
                     this.toolbars.get(barGroup).push(actionName);
                 }.bind(this));
@@ -157,8 +191,8 @@ Class.create("ActionsToolbar", {
                 selection:false,
                 dir:true,
                 actionBar:true,
-                actionBarGroup:'put',
-                contextMenu:true,
+                actionBarGroup:'get',
+                contextMenu:false,
                 infoPanel:false
 
             }, {}, {}, {dynamicItems: submenuItems});
@@ -210,7 +244,7 @@ Class.create("ActionsToolbar", {
 	/**
 	 * Initialize a given toolbar
 	 * @param toolbar String The name of the toolbar
-	 * @returns HTMLElement
+	 * @returns HTMLElement|String
 	 */
 	initToolbar: function(toolbar){
 		if(!this.toolbars.get(toolbar)) {
@@ -218,7 +252,7 @@ Class.create("ActionsToolbar", {
 		}
 		var toolEl = this.element.down('#'+toolbar+'_toolbar');
 		if(!toolEl){ 
-			var toolEl = new Element('div', {
+			toolEl = new Element('div', {
 				id: toolbar+'_toolbar',
                 className:'toolbarGroup'
 			});
@@ -244,7 +278,7 @@ Class.create("ActionsToolbar", {
                     button.OBSERVERS.each(function(pair){
                         button.ACTION.stopObserving(pair.key, pair.value);
                     });
-                    button.remove();
+                    try{button.remove();}catch(e){}
                 }
             });
         }
@@ -358,13 +392,27 @@ Class.create("ActionsToolbar", {
         if(!this.options.skipBubbling){
             img.setStyle("width:18px;height:18px;margin-top:8px;");
         }
-		button.hide();
+        button.hideButton = function(){
+            this.hide();
+            this.removeClassName("action_visible");
+            this.addClassName("action_hidden");
+        }.bind(button);
+        button.showButton = function(){
+            this.show();
+            this.removeClassName("action_hidden");
+            this.addClassName("action_visible");
+        }.bind(button);
+
+		button.hideButton();
 		this.attachListeners(button, action);
+        if(!this.registeredButtons){
+            this.registeredButtons = $A();
+        }
         this.registeredButtons.push(button);
 		return button;
 		
 	},
-	
+
 	/**
 	 * Attach various listeners to an action to reflect its state on the button
 	 * @param button HTMLElement The button
@@ -378,9 +426,9 @@ Class.create("ActionsToolbar", {
             fakeDm.setSelectedNodes([this.options.attachToNode]);
             action.fireSelectionChange(fakeDm);
             if(action.deny) {
-                button.hide();
+                button.hideButton();
             }  else {
-                button.show();
+                button.showButton();
             }
             button.ACTION = action;
             return;
@@ -388,8 +436,8 @@ Class.create("ActionsToolbar", {
 
 
         button.OBSERVERS = $H();
-        button.OBSERVERS.set("hide", function(){button.hide()}.bind(this));
-        button.OBSERVERS.set("show", function(){button.show()}.bind(this));
+        button.OBSERVERS.set("hide", function(){button.hideButton()}.bind(this));
+        button.OBSERVERS.set("show", function(){button.showButton()}.bind(this));
 
         button.OBSERVERS.each(function(pair){
             action.observe(pair.key, pair.value);
@@ -397,10 +445,10 @@ Class.create("ActionsToolbar", {
         button.ACTION = action;
 
 		action.observe("hide", function(){
-			button.hide();
+			button.hideButton();
 		}.bind(this));
 		action.observe("show", function(){
-			button.show();
+			button.showButton();
 		}.bind(this));
 		action.observe("disable", function(){
 			button.addClassName("disabled");
@@ -412,7 +460,7 @@ Class.create("ActionsToolbar", {
 			if(!submenuItem.src || !action.options.subMenuUpdateImage) return;
 			var images = button.select('img[id="'+action.options.name +'_button_icon"]');
 			if(!images.length) return;
-            icSize = 22;
+            var icSize = 22;
             if(this.options.stylesImgSizes && this.style && this.options.stylesImgSizes[this.style]){
                 icSize = this.options.stylesImgSizes[this.style];
             }
@@ -440,15 +488,14 @@ Class.create("ActionsToolbar", {
 		  zIndex:2000,
           position : (this.options.submenuPosition ? this.options.submenuPosition : "bottom")
 		});	
-		var titleSpan = button.select('span')[0];	
-		subMenu.options.beforeShow = function(e){
+		subMenu.options.beforeShow = function(){
 			button.addClassName("menuAnchorSelected");
 			if(!this.options.skipBubbling) this.buttonStateHover(button, action);
 		  	if(action.subMenuItems.dynamicBuilder){
 		  		action.subMenuItems.dynamicBuilder(subMenu);
 		  	}
 		}.bind(this);		
-		subMenu.options.beforeHide = function(e){
+		subMenu.options.beforeHide = function(){
 			button.removeClassName("menuAnchorSelected");
 			if(!this.options.skipBubbling) this.buttonStateOut(button, action);
 		}.bind(this);
@@ -458,8 +505,6 @@ Class.create("ActionsToolbar", {
 
     /**
      * Creates a submenu
-     * @param button HTMLElement The anchor of the submenu
-     * @param action Action The action
      */
     buildActionBarStylingMenu : function(){
         this.stylingMenu = new Proto.Menu({
@@ -593,7 +638,8 @@ Class.create("ActionsToolbar", {
 	/**
 	 * Resize the widget. May trigger the apparition/disparition of the Carousel buttons.
 	 */
-	resize : function(){
+	resize : function($super){
+        $super();
         if(this.options.skipCarousel) {
             return;
         }
@@ -609,7 +655,7 @@ Class.create("ActionsToolbar", {
 		});
 		if(visibles.length){
 			var last = visibles[visibles.length-1];
-			var innerSize = last.cumulativeOffset()[0] + last.getWidth();
+			innerSize = last.cumulativeOffset()[0] + last.getWidth();
 		}
 		if(innerSize > parentWidth){
             var h = parseInt(this.element.up("div.action_bar").getHeight()) - 1;

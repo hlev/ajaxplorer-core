@@ -1,21 +1,21 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 /**
@@ -113,7 +113,7 @@ Class.create("AjxpDataModel", {
                 }else{
                     if(ajxpNode.getMetadata().get("paginationData") && arguments.length < 3){
                         var newPage;
-                        var currentPage = ajxpNode.getMetadata().get("current");
+                        var currentPage = ajxpNode.getMetadata().get("paginationData").get("current");
                         this.loadPathInfoSync(selPath, function(foundNode){
                             newPage = foundNode.getMetadata().get("page_position");
                         });
@@ -146,7 +146,7 @@ Class.create("AjxpDataModel", {
 		}
 	},
 
-    requireNodeReload: function(nodeOrPath){
+    requireNodeReload: function(nodeOrPath, completeCallback){
         if(Object.isString(nodeOrPath)){
             nodeOrPath = new AjxpNode(nodeOrPath);
         }
@@ -164,6 +164,7 @@ Class.create("AjxpDataModel", {
                     this._selectedNodes.push(newNode);
                     this._selectionSource = {};
                     this.publish("selection_changed", this);
+                    if(completeCallback) completeCallback(newNode);
                 }.bind(this);
             }
         }
@@ -172,6 +173,10 @@ Class.create("AjxpDataModel", {
 
     loadPathInfoSync: function (path, callback){
         this._iAjxpNodeProvider.loadLeafNodeSync(new AjxpNode(path), callback);
+    },
+
+    loadPathInfoAsync: function (path, callback){
+        this._iAjxpNodeProvider.loadLeafNodeSync(new AjxpNode(path), callback, true);
     },
 
 	/**
@@ -205,10 +210,20 @@ Class.create("AjxpDataModel", {
 		if(this._contextNode && this._contextNode == ajxpDataNode && this._currentRep  == ajxpDataNode.getPath() && !forceEvent){
 			return; // No changes
 		}
-		this._contextNode = ajxpDataNode;
+        if(!ajxpDataNode) return;
+        if(this._contextNodeReplacedObserver && this._contextNode){
+            this._contextNode.stopObserving("node_replaced", this._contextNodeReplacedObserver);
+        }
+        this._contextNode = ajxpDataNode;
 		this._currentRep = ajxpDataNode.getPath();
         this.publish("context_changed", ajxpDataNode);
+        if(!this._contextNodeReplacedObserver) this._contextNodeReplacedObserver = this.contextNodeReplaced.bind(this);
+        ajxpDataNode.observe("node_replaced", this._contextNodeReplacedObserver);
 	},
+
+    contextNodeReplaced: function(newNode){
+        this.setContextNode(newNode);
+    },
 
     /**
      *
@@ -342,13 +357,13 @@ Class.create("AjxpDataModel", {
 		}else{
 			this._selectionSource = source;
 		}
-        ajxpDataNodes = $A(ajxpDataNodes).without(this._rootNode);
+        //ajxpDataNodes = $A(ajxpDataNodes).without(this._rootNode);
 		this._selectedNodes = $A(ajxpDataNodes);
 		this._bEmpty = ((ajxpDataNodes && ajxpDataNodes.length)?false:true);
 		this._bFile = this._bDir = this._isRecycle = false;
 		if(!this._bEmpty)
 		{
-			this._bUnique = ((ajxpDataNodes.length == 1)?true:false);
+			this._bUnique = (ajxpDataNodes.length == 1);
 			for(var i=0; i<ajxpDataNodes.length; i++)
 			{
 				var selectedNode = ajxpDataNodes[i];
@@ -417,6 +432,13 @@ Class.create("AjxpDataModel", {
         return test;
     },
 
+    selectionHasRootNode : function(){
+        return (null != this._selectedNodes.detect(function(el){
+            return el.isRoot();
+        }));
+
+    },
+
 	/**
 	 * Whether the selection is unique
 	 * @returns Boolean
@@ -451,20 +473,11 @@ Class.create("AjxpDataModel", {
 	},
 	
 	/**
-	 * DEPRECATED. Should use getCurrentNode().getPath() instead.
-	 * @returns String
-	 */
-	getCurrentRep : function (){
-		return this._currentRep;
-	},
-	
-	/**
 	 * Whether the selection has more than one node selected
 	 * @returns Boolean
 	 */
 	isMultiple : function(){
-		if(this._selectedNodes && this._selectedNodes.length > 1) return true;
-		return false;
+		return this._selectedNodes && this._selectedNodes.length > 1;
 	},
 	
 	/**
@@ -487,7 +500,7 @@ Class.create("AjxpDataModel", {
 	/**
 	 * Get all selected filenames as an array.
 	 * @param separator String Is a separator, will return a string joined
-	 * @returns Array|String
+	 * @returns Array|String|bool
 	 */
 	getFileNames : function(separator){
 		if(!this._selectedNodes.length)
@@ -496,7 +509,7 @@ Class.create("AjxpDataModel", {
 			return false;
 		}
 		var tmp = new Array(this._selectedNodes.length);
-		for(i=0;i<this._selectedNodes.length;i++)
+		for(var i=0;i<this._selectedNodes.length;i++)
 		{
 			tmp[i] = this._selectedNodes[i].getPath();
 		}
@@ -510,7 +523,7 @@ Class.create("AjxpDataModel", {
 	/**
 	 * Get all the filenames of the current context node children
 	 * @param separator String If passed, will join the array as a string
-	 * @return Array|String
+	 * @return Array|String|bool
 	 */
 	getContextFileNames : function(separator){
 		var allItems = this._contextNode.getChildren();
@@ -519,7 +532,7 @@ Class.create("AjxpDataModel", {
 			return false;
 		}
 		var names = $A([]);
-		for(i=0;i<allItems.length;i++)
+		for(var i=0;i<allItems.length;i++)
 		{
 			names.push(getBaseName(allItems[i].getPath()));
 		}
@@ -529,22 +542,27 @@ Class.create("AjxpDataModel", {
 			return names;
 		}
 	},
-	
-	/**
-	 * Whether the context node has a child with this basename
-	 * @param newFileName String The name to check
-	 * @returns Boolean
-	 */
-	fileNameExists: function(newFileName, local)
+
+    /**
+     * Whether the context node has a child with this basename
+     * @param newFileName String The name to check
+     * @returns Boolean
+     * @param local
+     * @param contextNode
+     */
+	fileNameExists: function(newFileName, local, contextNode)
 	{
+        if(!contextNode){
+            contextNode = this._contextNode;
+        }
         if(local){
-            var test = this._contextNode.getPath() + "/" + newFileName;
-            return this._contextNode.getChildren().detect(function(c){
+            var test = (contextNode.getPath()=="/"?"":contextNode.getPath()) + "/" + newFileName;
+            return contextNode.getChildren().detect(function(c){
                 return c.getPath() == test;
             });
         }else{
             var nodeExists = false;
-            this.loadPathInfoSync(this._contextNode.getPath() + "/" + newFileName, function(foundNode){
+            this.loadPathInfoSync(contextNode.getPath() + "/" + newFileName, function(foundNode){
                 nodeExists = true;
             });
             return nodeExists;
@@ -567,7 +585,7 @@ Class.create("AjxpDataModel", {
         };
         conn.sendSync();
         if(result === false){
-            throw new Error("Check failed" + error);
+            throw new Error("Check failed" + result);
         }
     },
 	
@@ -590,21 +608,7 @@ Class.create("AjxpDataModel", {
 		}
 		return null;
 	},
-	
-	/**
-	 * DEPRECATED
-	 */
-	getUniqueItem : function(){
-		throw new Error("getUniqueItem is deprecated, use getUniqueNode instead!");
-	},
 
-	/**
-	 * DEPRECATED
-	 */
-    getItem : function(i) {
-        throw new Error("getItem is deprecated, use getNode instead!");
-    },
-	
     /**
      * Gets a node from the current selection
      * @param i Integer the node index
@@ -625,41 +629,30 @@ Class.create("AjxpDataModel", {
 		// CLEAR FROM PREVIOUS ACTIONS!
 		if(oFormElement)	
 		{
-			$(oFormElement).getElementsBySelector("input").each(function(element){
-				if(element.name.indexOf("file_") != -1 || element.name=="file") element.value = "";
+			$(oFormElement).select('input[type="hidden"]').each(function(element){
+				if(element.name == "nodes[]" || element.name == "file")element.remove();
 			});
 		}
 		// UPDATE THE 'DIR' FIELDS
-		if(oFormElement && oFormElement.rep) oFormElement.rep.value = this._currentRep;
+		if(oFormElement && oFormElement['rep']) oFormElement['rep'].value = this._currentRep;
 		sUrl += '&dir='+encodeURIComponent(this._currentRep);
 		
 		// UPDATE THE 'file' FIELDS
 		if(this.isEmpty()) return sUrl;
 		var fileNames = this.getFileNames();
-		if(this.isUnique())
-		{
-			sUrl += '&'+'file='+encodeURIComponent(fileNames[0]);
-			if(oFormElement) this._addHiddenField(oFormElement, 'file', fileNames[0]);
-		}
-		else
-		{
-			for(var i=0;i<fileNames.length;i++)
-			{
-				sUrl += '&'+'file_'+i+'='+encodeURIComponent(fileNames[i]);
-				if(oFormElement) this._addHiddenField(oFormElement, 'file_'+i, fileNames[i]);
-			}
-		}
+        for(var i=0;i<fileNames.length;i++)
+        {
+            sUrl += '&'+'nodes[]='+encodeURIComponent(fileNames[i]);
+            if(oFormElement) this._addHiddenField(oFormElement, 'nodes[]', fileNames[i]);
+        }
+        if(fileNames.length == 1){
+            sUrl += '&'+'file='+encodeURIComponent(fileNames[0]);
+            if(oFormElement) this._addHiddenField(oFormElement, 'file', fileNames[0]);
+        }
 		return sUrl;
 	},
 	
 	_addHiddenField : function(oFormElement, sFieldName, sFieldValue){
-		if(oFormElement[sFieldName]) oFormElement[sFieldName].value = sFieldValue;
-		else{
-			var field = document.createElement('input');
-			field.type = 'hidden';
-			field.name = sFieldName;
-			field.value = sFieldValue;
-			oFormElement.appendChild(field);
-		}
+        oFormElement.insert(new Element('input', {type:'hidden', name:sFieldName, value:sFieldValue}));
 	}
 });

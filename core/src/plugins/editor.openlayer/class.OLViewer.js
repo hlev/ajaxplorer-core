@@ -1,47 +1,41 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 Class.create("OLViewer", AbstractEditor, {
 
-	initialize: function($super, oFormObject)
+	initialize: function($super, oFormObject, options)
 	{
-		$super(oFormObject);
-		this.actions.get("downloadFileButton").observe('click', function(){
-			if(!this.currentFile) return;		
-			ajaxplorer.triggerDownload(ajxpBootstrap.parameters.get('ajxpServerAccess')+'&action=download&file='+this.currentFile);
-			return false;
-		}.bind(this));
+		$super(oFormObject, options);
 		this.element.observe('editor:enterFS', function(){this.fullScreenMode = true;}.bind(this) );
 	},
 	
 	
 	open : function($super, node){
 		$super(node);
-		var ajxpNode = node;
-		this.updateTitle(getBaseName(ajxpNode.getPath()));
+        this.updateTitle(getBaseName(node.getPath()));
 		this.mapDiv = new Element('div', {id:'openlayer_map', style:'width:100%'});
 		this.contentMainContainer = this.mapDiv;
-		this.initFilterBar((ajxpNode.getAjxpMime()=='wms_layer'?true:false));
+		this.initFilterBar((node.getAjxpMime() == 'wms_layer'));
 		this.element.insert(this.mapDiv);
 		fitHeightToBottom($(this.mapDiv), $(modal.elementName));
         
-		var result = this.createOLMap(ajxpNode, 'openlayer_map', false, true);
+		var result = this.createOLMap(node, 'openlayer_map', false, true);
 		this.olMap = result.MAP;
 		this.layers = result.LAYERS;
 		this.refreshLayersSwitcher();
@@ -56,7 +50,8 @@ Class.create("OLViewer", AbstractEditor, {
 	resize : function ($super, size){
 		$super(size);
 		if(!this.fullScreenMode){
-			fitHeightToBottom($(this.mapDiv), $(modal.elementName));
+			fitHeightToBottom($(this.element));
+			fitHeightToBottom($(this.mapDiv), $(this.editorOptions.context.elementName));
 		}
 		if(this.olMap){
 			this.olMap.updateSize();
@@ -75,7 +70,7 @@ Class.create("OLViewer", AbstractEditor, {
 		}.bind(this));
 		bar.down('select#layerSelector').observe('change', function(e){
 			var selected = e.findElement().getValue();
-			var baseLayer;
+			var baseLayer='';
 			this.layers.each(function(layer){
 				if(layer.name == selected){
 					baseLayer = layer;
@@ -222,7 +217,7 @@ Class.create("OLViewer", AbstractEditor, {
 		}
 		
 		
-        var options = {projection:meta_srs}
+        var options = {projection:meta_srs};
         if(meta_bound){
         	options.maxExtent = meta_bound;
         	options.maxResolution =  1245.650390625;
@@ -235,7 +230,7 @@ Class.create("OLViewer", AbstractEditor, {
         layersDefinitions.each(function(definition){
         	var layer;
         	if(definition.type == 'WMS'){
-        		var layerOpt, title;
+        		var title;
         		var layerDef = {
         			layers : definition.name,
         			styles : definition.style
@@ -250,7 +245,7 @@ Class.create("OLViewer", AbstractEditor, {
         			title = "Single Tile";
         			options = {singleTile:true, ratio:1};
         		}
-        		layer = new OpenLayers.Layer.WMS(title, layerUrl, layerDef, layerOpt);
+        		layer = new OpenLayers.Layer.WMS(title, layerUrl, layerDef, null);
         	}else if(definition.type == 'OSM'){
 	        	layer = new OpenLayers.Layer.OSM();
         	}else if(definition.type == 'Google'){
@@ -312,15 +307,13 @@ Class.create("OLViewer", AbstractEditor, {
 	getPreview : function(ajxpNode, rich){		
 		if(rich){
 			
-			var metadata = ajxpNode.getMetadata();			
 			var div = new Element('div', {id:"ol_map", style:"width:100%;height:200px;"});
 			div.resizePreviewElement = function(dimensionObject){
-				// do nothing;
 				div.setStyle({height:'200px'});
 				if(div.initialized) return;				
 				OLViewer.prototype.createOLMap(ajxpNode, 'ol_map', true);
 				div.initialized = true;
-			}
+			};
 			return div;
 		}else{
 			return new Element('img', {src:resolveImageSource(ajxpNode.getIcon(),'/images/mimes/ICON_SIZE',64)});

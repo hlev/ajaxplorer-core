@@ -1,28 +1,28 @@
 /*
- * Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
- * This file is part of AjaXplorer.
+ * Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+ * This file is part of Pydio.
  *
- * AjaXplorer is free software: you can redistribute it and/or modify
+ * Pydio is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * AjaXplorer is distributed in the hope that it will be useful,
+ * Pydio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
  *
- * The latest code can be found at <http://www.ajaxplorer.info/>.
+ * The latest code can be found at <http://pyd.io/>.
  */
 
 
 // TO ADD GLOBALLY
 var timerClearObserver = {
 	onEnd:function(){
-		if(WebFXtimer) clearTimeout(WebFXtimer);
+		if(window.WebFXtimer) clearTimeout(window.WebFXtimer);
 	}
 } ;
 document.observe("ajaxplorer:loaded", function(){
@@ -33,20 +33,23 @@ document.observe("ajaxplorer:loaded", function(){
 		}
 	}});	
 });
-var AllAjxpDraggables = $A([]);
+window.AllAjxpDraggables = $A([]);
 var AllAjxpDroppables = $A([]);
 Event.observe(window, "unload", function(){
 	Draggables.removeObserver(timerClearObserver);
-	AllAjxpDraggables.each(function(el){
-		el.destroy();
+    window.AllAjxpDraggables.each(function(el){
+        try{
+		    el.destroy();
+        }catch(z){}
 	});
-	AllAjxpDroppables.each(function(el){
-		Droppables.remove(el);
+    window.AllAjxpDroppables.each(function(el){
+        try{
+    		Droppables.remove(el);
+        }catch(z){}
 	});
 });
-
 /**
- * AjaXplorer encapsulation of the Prototype Draggable
+ * Pydio encapsulation of the Prototype Draggable
  */
 Class.create("AjxpDraggable", Draggable, {
 	/**
@@ -60,6 +63,7 @@ Class.create("AjxpDraggable", Draggable, {
 	initialize: function($super, element, options, component, componentType){		
 		element = $(element);
 		element.addClassName('ajxp_draggable');
+        if(!options.zindex) options.zindex = 900;
 		$super(element, options);
 		this.options.reverteffect =  function(element, top_offset, left_offset) {
 			new Effect.Move(element, { x: -left_offset, y: -top_offset, duration: 0,
@@ -68,8 +72,7 @@ Class.create("AjxpDraggable", Draggable, {
 		};
 		this.options.delay = (Prototype.Browser.IE?350:200);
 		this.component = component;
-		this.componentType = componentType;
-		AllAjxpDraggables.push(this);
+        window.AllAjxpDraggables.push(this);
 	},
 	
 	/**
@@ -92,6 +95,7 @@ Class.create("AjxpDraggable", Draggable, {
 		if(Event.isLeftClick(event)) {
 			// abort on form elements, fixes a Firefox issue
 			var src = Event.element(event);
+            var tag_name;
 			if((tag_name = src.tagName.toUpperCase()) && (
 			tag_name=='INPUT' ||
 			tag_name=='SELECT' ||
@@ -414,23 +418,34 @@ var AjxpDroppables = {
 					var targetName = droppable.ajxpNode.getPath();
 					var srcName;
 					if(draggable.ajxpNode){
-						var srcName = draggable.ajxpNode.getPath();
+						srcName = draggable.ajxpNode.getPath();
 					}
-                    if(WebFXtimer) clearTimeout(WebFXtimer);
+                    if(window.WebFXtimer) clearTimeout(window.WebFXtimer);
                     var nodeId = null;
                     if(droppable.id && webFXTreeHandler.all[droppable.id]){
                         nodeId = droppable.id;
                     }
                     var copy = draggable.hasClassName("selection_ctrl_key");
-					ajaxplorer.actionBar.applyDragMove(srcName, targetName, nodeId, copy);
+                    if(droppable.applyDragMove){
+                        if(!srcName && draggable.getAttribute('user_selection')){
+                            srcName = 'ajxp-user-selection';
+                        }
+                        droppable.applyDragMove(srcName, targetName, nodeId, copy);
+                    }else{
+                        ajaxplorer.actionBar.applyDragMove(srcName, targetName, nodeId, copy);
+                    }
 				},
 		onHover:function(draggable, droppable, event)
 				{
-					if(WebFXtimer) clearTimeout(WebFXtimer);
+					if(window.WebFXtimer) clearTimeout(window.WebFXtimer);
 					if(droppable.id && webFXTreeHandler.all[droppable.id])
 					{
-						var jsString = "javascript:";			
-						WebFXtimer = window.setTimeout(function(){
+                        var container = droppable.up('div.show_first_level');
+                        if(container) {
+                            container.removeClassName("show_first_level");
+                            container.addClassName("reset_show_first_level");
+                        }
+						window.WebFXtimer = window.setTimeout(function(){
 							var node = webFXTreeHandler.all[droppable.id];
 							if(node &&  node.folder && !node.open) node.expand();
 						}, 500);
@@ -438,7 +453,9 @@ var AjxpDroppables = {
 				}, 
 		onOut:function(droppable)
 				{
-					if(WebFXtimer) clearTimeout(WebFXtimer);					
+					if(window.WebFXtimer) clearTimeout(window.WebFXtimer);
+                    var container = droppable.up('div.reset_show_first_level');
+                    if(container) container.addClassName("show_first_level");
 				}
 	},
 
@@ -448,5 +465,13 @@ var AjxpDroppables = {
         }
 		Droppables.add(element, this.options);
 		AllAjxpDroppables.push($(element));
-	}	
+
+        if(AjxpDroppables.dragOverHook){
+            $(element).select("*").invoke("observe", "dragover", AjxpDroppables.dragOverHook, true);
+            $(element).select("*").invoke("observe", "drop", AjxpDroppables.dropHook, true);
+            $(element).select("*").invoke("observe", "dragenter", AjxpDroppables.dragEnterHook, true);
+            $(element).select("*").invoke("observe", "dragleave", AjxpDroppables.dragLeaveHook, true);
+        }
+
+    }
 };

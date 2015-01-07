@@ -1,22 +1,22 @@
 <?php
 /*
-* Copyright 2007-2011 Charles du Jeu <contact (at) cdujeu.me>
-* This file is part of AjaXplorer.
+* Copyright 2007-2013 Charles du Jeu - Abstrium SAS <team (at) pyd.io>
+* This file is part of Pydio.
 *
-* AjaXplorer is free software: you can redistribute it and/or modify
+* Pydio is free software: you can redistribute it and/or modify
 * it under the terms of the GNU Affero General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* AjaXplorer is distributed in the hope that it will be useful,
+* Pydio is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU Affero General Public License for more details.
 *
 * You should have received a copy of the GNU Affero General Public License
-* along with AjaXplorer.  If not, see <http://www.gnu.org/licenses/>.
+* along with Pydio.  If not, see <http://www.gnu.org/licenses/>.
 *
-* The latest code can be found at <http://www.ajaxplorer.info/>.
+* The latest code can be found at <http://pyd.io/>.
 */
 //  hungarian translation: Gyarmati Balázs <gyarmati.balazs@gmail.com>
 //  fixes, additions: Levente Huszkó <levente.huszko@gmail.com>
@@ -26,6 +26,7 @@ $mess=array(
 "languageLabel" => "Hungarian",
 "date_format"  => "Y/m/d H:i",
 "byte_unit_symbol" => "b",
+"date_intl_locale" => "hu-HU",
 "0" => "Utolsó változat",
 "1" => "Fájlnév",
 "2" => "Fájlméret",
@@ -192,9 +193,19 @@ $mess=array(
 "164"=> "Kijelentkezés",
 "165"=> "Beállítások",
 "166"=> "Infó",
+<<<<<<< HEAD
 "167"=> "Infó a Pydioról",
 "168" => "Kapcsolódás az Pydiohoz",
 "169" => "A Pydio kapcsolat bontása",
+||||||| merged common ancestors
+"167"=> "Infó az AjaXplorerről",
+"168" => "Kapcsolódás az AjaXplorerhez",
+"169" => "Az AjaXplorer kapcsolat bontása",
+=======
+"167"=> "Infó az Pydio",
+"168" => "Kapcsolódás az APPLICATION_TITLE",
+"169" => "Az APPLICATION_TITLE kapcsolat bontása",
+>>>>>>> 07a69437b3a3637e87dd3f7eda7b1a0ad257c1b0
 "170" => "Jelenlegi mappa",
 "parent_access_key" => "ü",
 "refresh_access_key" => "r",
@@ -418,8 +429,8 @@ $mess=array(
 "366" => "Ennek a felhasználónak nincs aktív hozzáférési mappája.",
 "367" => "Nem tölthetsz fel ilyen típusú fájlt. Válassz ezekből a kiterjesztésekből : ",
 "368" => "Sikeres kitömörítés a kiválasztott %s fájlból a %s mappába",
-"369" => "AjaXplorer Link",
-"370" => "AjaXplorer publikus letöltés",
+"369" => "APPLICATION_TITLE Link",
+"370" => "APPLICATION_TITLE publikus letöltés",
 "371" => "A letölthéshez jelszó kell",
 "372" => "Jelenlegi gyűjtemény",
 "373" => "Cél",
@@ -438,7 +449,7 @@ $mess=array(
 "389" => "Olvasd el az alábbi kódot :",
 "390" => "Kód",
 "391" => "Nincs gyűjtemény",
-"392" => "Figyelmeztetés, az AjaXplorer verziója megváltozott (jelenleg %s), kérlek töröld a böngésző gyorsítótárat és frissíts az oldalt, hogy minden biztosan megfelelően működjön!",
+"392" => "Figyelmeztetés, az APPLICATION_TITLE verziója megváltozott (jelenleg %s), kérlek töröld a böngésző gyorsítótárat és frissíts az oldalt, hogy minden biztosan megfelelően működjön!",
 "393" => "Figyelmeztetés, a név hossza kevesebb, mint %s lehet, ennek a fájlnak a neve csonkítva lesz!",
 "394" => "Sajnos a pillanatnyi auth driverrel nem lehetséges a mappa megosztás (a felhasználók nem szerkeszthetők). A fájlmegosztás lehetséges.",
 "395" => "A bedobott elem egy mappának tűnik és mappákat nem lehet a szerverre feltölteni! Folytatod?",
@@ -450,7 +461,7 @@ $mess=array(
 "401" => "Az alábbi alkalmazást alkalmas a letöltött darabok egyesítéséhez : ",
 "402" => "http://www.hjsplit.org/",
 "403" => "WebDAV beállítások",
-"404" => "A WebDAV protokol arra használható, hogy az AjaXplorer gyűjteményeket, mint 'hálózati meghajtót' beállítsd különböző klienseken, mint a Windows, Mac, iPhone, stb.",
+"404" => "A WebDAV protokol arra használható, hogy az APPLICATION_TITLE gyűjteményeket, mint 'hálózati meghajtót' beállítsd különböző klienseken, mint a Windows, Mac, iPhone, stb.",
 "405" => "Használd a következő URL címet a gyűjteményeid eléréséhez a megadott felhasználónévvel és jelszóval. Figyelem, ez csak azután működik, hogy ezt a funkciót 'aktív' állapotba állítod és beírod a jelszavad.",
 "406" => "WebDAV megosztások aktiválása",
 "407" => "Írd be a jelszavad, ha első alkalommal aktiválod a WebDAV megosztásokat, vagy ha új jelszót kívánsz megadni :",
@@ -521,6 +532,114 @@ $mess=array(
 "date_relative_days_ahead" => "%s nap múlva",
 "462" => "Előnézet",
 "preview_access_key" => "e",
+"463" => "Download all",
+"464" => "Download all workspace content at once (zipped)",
+"465" => "Show alternative URLs (mount workspaces separately)",
+"466" => "Loading...",
+"467" => "All Shared Elements",
+"468" => "My Workspaces",
+"469" => "Shared with me",
+"470" => "Created %date",
+"471" => "Created by %user %date",
+"472" => "Shared by %user",
+"473" => "Shared by %user %date",
+"474" => "No description available",
+"475" => "Files shared amongst all users",
+"476" => "Your personal workspace",
+"477" => "Select a file or folder to see its details here",
+"478" => "No results found",
+"479" => "Forgot your password?",
+"480" => "Browse all folders of the current workspace.",
+"481" => "All your shared files and folders",
+"482" => "Quick access to your bookmarked items",
+"483" => "You are not authorized to create more users!",
+"484" => "Create user",
+"485" => "Create a shared user",
+"486" => "Advanced",
+"487" => "Basic",
+"488" => "Advanced Filter",
+"489" => "Metadata",
+"490" => "Date range",
+"491" => "After",
+"492" => "until",
+"493" => "Today",
+"494" => "Yesterday",
+"495" => "Last week",
+"496" => "Last month",
+"497" => "Last year",
+"498" => "Document Property",
+"499" => "File",
+"500" => "extension",
+"501" => "or",
+"502" => "Folder",
+"503" => "Size",
+"504" => "1k,1M,1G",
+"505" => "to",
+"506" => "Application parameters (users, workspaces, configurations)",
+"507" => "Welcome on %s",
+"508" => "I just created an account for you on %s. To connect, please click on the following link %link and use these credentials:  <br><br> Login: %user <br><br> Password: %pass",
+"509" => "Save the current users list as a personal team",
+"510" => "Please enter a team label",
+"511" => "My %s",
+"512" => "Desktop Full Screen",
+"513" => "show",
+"514" => "hide",
+"515" => "No bookmarks - Drop files or folders here for quick access.",
+"516" => "expand",
+"517" => "collapse",
+"518" => "Alternatively, you can <a class='create_file_alt_link'>create a new empty file</a>.",
+"519" => "Update user",
+"520" => "Update user data and password",
+"521" => "User was update successfully",
+"522" => "User ID",
+"523" => "Password",
+"524" => "Update Password",
+"525"=> "Show original picture",
+"526"=> "Low-resolution version",
+"527"=> "Shared with",
+"528"=> "Internal users",
+"530"=> "External users",
+"531"=> "Int.",
+"532"=> "Ext.",
+"533" => "Identifier used to login, please use alphanumeric or email lowercase characters.",
+"534" => "Password used to login",
+"535" => "Send password by email",
+"536" => "Send a welcome email including the password to the new user",
+"plugtype.title.access" => "Workspaces Drivers",
+"plugtype.desc.access" => "Plugins defining how a workspace will both access its backend (a file storage or whatever else) and major layouts and actions.",
+"plugtype.title.action" => "Action plugins",
+"plugtype.desc.action" => "Feature oriented plugins for various aspects",
+"plugtype.title.authfront" => "Authentication Frontends",
+"plugtype.desc.authfront" => "Methods for gathering identification credentials (web form, api key, etc)",
+"plugtype.title.cypher" => "Encryption Tools",
+"plugtype.desc.cypher" => "Data encryption plugins",
+"plugtype.title.editor" => "Editors",
+"plugtype.desc.editor" => "Viewers or editors for wide range of mime types",
+"plugtype.title.gui" => "Graphical User Interface",
+"plugtype.desc.gui" => "Main web interface and its declinations",
+"plugtype.title.index" => "Indexation",
+"plugtype.desc.index" => "Tools for indexing data and providing quick search option",
+"plugtype.title.meta" => "Workspace Meta Aspects",
+"plugtype.desc.meta" => "Additionnal features to be added to the workspaces",
+"plugtype.title.metastore" => "Metadata Storage",
+"plugtype.desc.metastore" => "Various implementations for storing metadata along with files and folders",
+"plugtype.title.shorten" => "URL Shortening",
+"plugtype.desc.shorten" => "Webservices bridges for shortening public links",
+"plugtype.title.uploader" => "Uploaders",
+"plugtype.desc.uploader" => "Implementation of uploaders using various technologies (html, js, java...)",
+"plugtype.title.auth" => "Authentication Backends",
+"plugtype.desc.auth" => "How users data are stored in the backend",
+"plugtype.title.boot" => "Loader",
+"plugtype.desc.boot" => "Unique plugin for loading the framework.",
+"plugtype.title.conf" => "Configuration Storage",
+"plugtype.desc.conf" => "How configuration data are stored in the backend",
+"plugtype.title.feed" => "Events Feed Storage",
+"plugtype.desc.feed" => "Implementations for storing data events (only SQL yet)",
+"plugtype.title.log" => "Loggers",
+"plugtype.desc.log" => "Send application logs to various channels",
+"plugtype.title.mailer" => "Mailers",
+"plugtype.desc.mailer" => "Tools for letting the application send emails",
+"plugtype.title.mq" => "Instant Messaging",
+"plugtype.desc.mq" => "Implementations of a simple PUB/SUB server",
 /* END SENTENCE */
 );
-?>
